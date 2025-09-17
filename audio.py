@@ -1,22 +1,36 @@
-from pycaw.pycaw import AudioUtilities, IMMDeviceEnumerator
-from comtypes import CLSCTX_ALL
-from pycaw.utils import AudioUtilities, EDataFlow, ERole
-
-import warnings
-warnings.filterwarnings("ignore")
-
+import subprocess
 
 def listar_dispositivos():
-    # Retorna apenas dispositivos de saída (Render) e remove duplicados pelo nome
-    devices = AudioUtilities.GetAllDevices()
-    seen = set()
-    unique_devices = []
-    for d in devices:
-        if d.FriendlyName not in seen:
-            seen.add(d.FriendlyName)
-            unique_devices.append(d)
-    return [f"{i+1}. {d.FriendlyName}" for i, d in enumerate(unique_devices)]
+    comando = [
+        "powershell",
+        "-Command",
+        "Get-AudioDevice -List | ForEach-Object { $_.Index.ToString() + ' - ' + $_.Name + ' (' + $_.Type + ')' }"
+    ]
+    resultado = subprocess.run(comando, capture_output=True, text=True)
+    linhas = resultado.stdout.strip().split("\n")
+    dispositivos = {}
+    print("Dispositivos de áudio disponíveis:\n")
+    for linha in linhas:
+        if linha:
+            index, nome = linha.split(" - ", 1)
+            dispositivos[index.strip()] = nome.strip()
+            print(f"{index.strip()} - {nome.strip()}")
+    return dispositivos
+
+def trocar_dispositivo(index):
+    comando = [
+        "powershell",
+        "-Command",
+        f"Set-AudioDevice -Index {index}"
+    ]
+    subprocess.run(comando)
 
 if __name__ == "__main__":
-    for d in listar_dispositivos():
-        print(d)
+    dispositivos = listar_dispositivos()
+    escolha = input("\nDigite o índice do dispositivo que deseja usar: ").strip()
+    
+    if escolha in dispositivos:
+        trocar_dispositivo(escolha)
+        print(f"\n✅ Dispositivo de áudio alterado para: {dispositivos[escolha]}")
+    else:
+        print("\n❌ Índice inválido.")
