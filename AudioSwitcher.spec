@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['AudioSwitcher.py'],
+    ['audioSwitcher.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='AudioSwitcher',
+    name='audioSwitcher',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

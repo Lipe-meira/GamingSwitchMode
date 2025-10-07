@@ -34,11 +34,13 @@ def listar_dispositivos():
             print(f"{index.strip()} - {nome.strip()}")
     return dispositivos
 
+#------------------------------------------------------------------------------
 
 def trocar_dispositivo(index):
     comando = ["powershell", "-Command", f"Set-AudioDevice -Index {index}"]
     subprocess.run(comando)
 
+#------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     dispositivos = listar_dispositivos()
