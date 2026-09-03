@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['audioSwitcher.py'],
+    ['audio_switcher.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('modules/AudioDeviceCmdlets', 'modules/AudioDeviceCmdlets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='audioSwitcher',
+    name='AudioSwitcher',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
