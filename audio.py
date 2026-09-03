@@ -1,19 +1,57 @@
+import os
 import subprocess
+import sys
+
+CREATE_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
+
+
+def get_base_dir():
+    if getattr(sys, "frozen", False):
+        return getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def _get_module_import_cmd():
+    base_dir = get_base_dir()
+    candidatos = [
+        os.path.join(base_dir, "modules", "AudioDeviceCmdlets", "AudioDeviceCmdlets.dll"),
+        os.path.join(base_dir, "modules", "AudioDeviceCmdlets", "AudioDeviceCmdlets.psd1"),
+        os.path.join(base_dir, "AudioDeviceCmdlets.dll"),
+    ]
+    for caminho in candidatos:
+        if os.path.isfile(caminho):
+            escaped = caminho.replace("'", "''")
+            return (
+                "if (-not (Get-Command Get-AudioDevice -ErrorAction SilentlyContinue)) { "
+                f"Import-Module '{escaped}' -ErrorAction Stop"
+                " }; "
+            )
+    return ""
 
 
 def listar_dispositivos(tipo="Playback"):
+    import_cmd = _get_module_import_cmd()
+    script = (
+        f"{import_cmd}"
+        "Get-AudioDevice -List | "
+        f"Where-Object {{ $_.Type -eq '{tipo}' }} | "
+        "ForEach-Object { $_.Index.ToString() + ' - ' + $_.Name + ' (' + $_.Type + ')' }"
+    )
     comando = [
         "powershell",
         "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
         "-Command",
-        (
-            "Get-AudioDevice -List | "
-            f"Where-Object {{ $_.Type -eq '{tipo}' }} | "
-            "ForEach-Object { $_.Index.ToString() + ' - ' + $_.Name + ' (' + $_.Type + ')' }"
-        ),
+        script,
     ]
 
-    resultado = subprocess.run(comando, capture_output=True, text=True)
+    resultado = subprocess.run(
+        comando,
+        capture_output=True,
+        text=True,
+        creationflags=CREATE_NO_WINDOW,
+    )
     if resultado.returncode != 0:
         raise RuntimeError(resultado.stderr.strip() or "Erro ao listar dispositivos de audio.")
 
@@ -29,8 +67,22 @@ def listar_dispositivos(tipo="Playback"):
 
 
 def trocar_dispositivo(index):
-    comando = ["powershell", "-NoProfile", "-Command", f"Set-AudioDevice -Index {index}"]
-    resultado = subprocess.run(comando, capture_output=True, text=True)
+    import_cmd = _get_module_import_cmd()
+    script = f"{import_cmd}Set-AudioDevice -Index {index}"
+    comando = [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        script,
+    ]
+    resultado = subprocess.run(
+        comando,
+        capture_output=True,
+        text=True,
+        creationflags=CREATE_NO_WINDOW,
+    )
     if resultado.returncode != 0:
         raise RuntimeError(resultado.stderr.strip() or "Erro ao trocar dispositivo de audio.")
 
