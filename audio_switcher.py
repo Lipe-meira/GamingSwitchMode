@@ -11,9 +11,31 @@ from PIL import Image, ImageDraw
 
 import audio
 
+import ctypes
+from ctypes import wintypes
+
 
 CONFIG_FILE = "audio_switcher_config.json"
 
+
+# Código de erro do Windows para recurso já existente
+ERROR_ALREADY_EXISTS = 183
+
+def garantir_instancia_unica(nome_mutex: str):
+    kernel32 = ctypes.windll.kernel32
+    
+    # Cria (ou abre) o Mutex nomeado
+    # Importante: guarde o handle em uma variável global ou retorne-o
+    # para que o garbage collector do Python não o destrua enquanto o app roda.
+    mutex = kernel32.CreateMutexW(None, False, nome_mutex)
+    ultimo_erro = kernel32.GetLastError()
+    
+    if ultimo_erro == ERROR_ALREADY_EXISTS:
+        # Já existe outra instância rodando!
+        # Se quiser, pode exibir um messagebox rápido ou apenas sair em silêncio:
+        return None
+        
+    return mutex
 
 def app_dir():
     if getattr(sys, "frozen", False):
@@ -259,6 +281,10 @@ def criar_botoes_dispositivos():
         botoes[idx] = btn
         atualizar_botao(idx)
 
+# Cria ou obtém o Mutex nomeado único
+app_mutex = garantir_instancia_unica("GamingSwitchMode_AudioSwitcher_UniqueMutex")
+if not app_mutex:
+    sys.exit(0)
 
 root = tk.Tk()
 root.title("Switcher de Audio")
