@@ -35,3 +35,6 @@ class SystemTray:
         self.stop_requested = True
         if self.icon is not None:
             self.icon.stop()
+
+    def is_operational(self):
+        return not self.stop_requested and self.icon is not None and self.icon.visible

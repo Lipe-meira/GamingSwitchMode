@@ -250,6 +250,9 @@ class ApplicationController:
                 self.window.set_status(('Atalho capturado: ' if event == 'captured' else 'Erro ao gravar atalho: ') + args[0])
             elif event == 'show':
                 self.window.show()
+            elif event == 'tray_failed':
+                self.window.show()
+                self.window.set_status(f'Bandeja indisponivel: {args[0]}')
             elif event == 'exit':
                 self.shutdown()
                 return
@@ -265,7 +268,10 @@ class ApplicationController:
 
 
     def hide_window(self):
-        self.window.hide()
+        if self.tray is not None and self.tray.is_operational():
+            self.window.hide()
+        else:
+            self.window.set_status('Bandeja indisponivel; janela mantida aberta.')
 
 
     def show_window(self, icon, item):
@@ -281,7 +287,14 @@ class ApplicationController:
 
 
     def setup_tray(self):
-        self.tray.run()
+        try:
+            self.tray.run()
+        except Exception as error:
+            if not self.stopping:
+                self.events.put(('tray_failed', str(error)))
+        else:
+            if not self.stopping and not self.tray.stop_requested:
+                self.events.put(('tray_failed', 'icone encerrado inesperadamente'))
 
 
     def run(self):
