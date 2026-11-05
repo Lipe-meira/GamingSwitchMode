@@ -29,7 +29,9 @@ Você pode trocar o dispositivo diretamente pela interface ou configurar atalhos
 * Python 3
 * PowerShell
 
-Também é necessário instalar o módulo `AudioDeviceCmdlets` do PowerShell.
+O repositório inclui o módulo `AudioDeviceCmdlets` 3.1.0.2, carregado pelo aplicativo
+e incluído pelo PyInstaller. A instalação abaixo é uma alternativa quando esse
+módulo não estiver junto do aplicativo:
 
 ```powershell
 Install-Module AudioDeviceCmdlets -Scope CurrentUser
@@ -52,7 +54,7 @@ Instale as dependências Python:
 pip install keyboard pystray pillow
 ```
 
-Instale também o módulo responsável pelo controle dos dispositivos de áudio:
+Se o módulo incluído não estiver disponível, instale a alternativa no usuário:
 
 ```powershell
 Install-Module AudioDeviceCmdlets -Scope CurrentUser
@@ -84,13 +86,75 @@ Ctrl + Alt + 2 → Caixa de som
 Ctrl + Alt + 3 → Monitor
 ```
 
-Os atalhos ficam salvos no arquivo:
+Os atalhos ficam salvos por usuário, sem exigir administrador:
 
 ```text
-audio_switcher_config.json
+%APPDATA%\GamingSwitchMode\config.json
 ```
 
 Assim, eles são restaurados automaticamente na próxima execução.
+
+O aplicativo associa cada atalho ao **ID do endpoint**, independentemente do índice
+atual ou de nomes repetidos. Dispositivos ausentes permanecem na lista de atalhos
+como **Indisponivel**, podem ser editados/removidos e voltam a funcionar quando
+retornam com o mesmo ID. Use **Atualizar lista** para atualizar a interface; cada
+ativação também consulta os dispositivos novamente.
+
+Os rótulos começam com um sufixo único do ID para distinguir nomes iguais, mesmo
+quando são longos. O ID completo é preservado na configuração e usado na troca.
+
+Na primeira execução, o aplicativo procura `audio_switcher_config.json` junto do
+script/executável e, como alternativa, no diretório de trabalho. O arquivo original
+é preservado e copiado para `legacy-original.json.bak` no diretório da configuração
+do usuário antes da importação. Uma configuração nova válida tem prioridade.
+
+Como o JSON antigo só contém índices, seus atalhos aparecem como **Legado — confirmar
+dispositivo** e ficam inativos. Selecione um, clique em **Editar selecionado**, escolha
+o dispositivo correto e clique em **Registrar atalho**. Confirme a associação: a
+combinação antiga já estará preenchida. Não é possível deduzir com segurança o ID
+original a partir do índice antigo.
+
+Combinações conflitantes (inclusive aliases como `control`/`ctrl` e ordem diferente
+dos modificadores) são recusadas, preservando o atalho existente. Falhas ao registrar
+ou salvar também preservam a associação anterior. Atalhos que falharem na restauração
+permanecem salvos; **Atualizar lista** tenta registrá-los novamente.
+
+### Formato e recuperação
+
+```json
+{
+  "schema_version": 1,
+  "bindings": [
+    {
+      "device_id": "{0.0.0.00000000}.{exemplo-id}",
+      "name": "Headset",
+      "type": "Playback",
+      "hotkey": "ctrl+alt+1"
+    }
+  ],
+  "unresolved": [
+    {"legacy_index": "2", "hotkey": "ctrl+alt+2", "source": "caminho-antigo"}
+  ]
+}
+```
+
+`bindings` contém associações confirmadas; `unresolved`, as pendências legadas.
+A migração acrescenta `migration` com origem, backup e versão anterior; ao confirmar
+uma pendência, seus dados ficam no campo `legacy` da associação. Campos adicionais
+são preservados. `Index` é apenas diagnóstico de enumeração e não é persistido como
+identidade. Versões de schema desconhecidas bloqueiam gravações para evitar perda.
+
+As gravações usam arquivo temporário no mesmo diretório, `flush`/`fsync` e substituição
+atômica. Antes de substituir uma configuração válida existente, sua versão anterior
+é salva atomicamente em `config.json.bak`. Um JSON ilegível pode ser recuperado desse
+backup: o arquivo danificado é preservado como `config.json.invalid-<identificador>`.
+Sem backup válido, ou diante de erro de permissão/schema não suportado, a aplicação
+mostra o erro e protege os dados; corrija/restaure o arquivo e reinicie. O backup pode
+representar a edição anterior, não necessariamente a última tentativa de gravação.
+
+Se um driver ou o Windows gerar **outro ID**, a identidade anterior continuará
+indisponível. Cadastre o novo endpoint e remova a associação anterior explicitamente.
+IDs não garantem continuidade após reinstalação de drivers/Windows.
 
 ## 🔽 Bandeja do sistema
 
@@ -121,6 +185,9 @@ GamingSwitchMode/
 │
 ├── audio_switcher.py    # Interface, atalhos e tray icon
 ├── audio.py             # Controle dos dispositivos de áudio
+├── configuration.py     # Schema, migração, backup e gravação atômica
+├── hotkeys.py           # Registro transacional dos atalhos
+├── tests/               # Testes unitários e smoke test Windows opcional
 ├── shortcuts.py         # Utilitários relacionados a atalhos
 ├── AudioSwitcher.spec   # Configuração do PyInstaller
 ├── build/
@@ -146,6 +213,27 @@ O executável gerado ficará na pasta:
 ```text
 dist/
 ```
+
+## Testes e validação
+
+```powershell
+python -m unittest discover -s tests -v
+python -m py_compile audio.py audio_switcher.py configuration.py hotkeys.py
+python -c "import audio, audio_switcher, configuration, hotkeys"
+```
+
+Os testes unitários usam fakes/mocks para áudio e teclado, sem hardware real.
+O teste integrado opcional exige uma sessão de desktop Windows:
+
+```powershell
+python tests/windows_smoke.py
+```
+
+Ele usa configuração temporária, Tkinter/bandeja e registro real de hooks; simula
+o callback na fila, aplica o ID da saída atual e restaura os padrões anteriores.
+`python tests/windows_smoke.py --send-input` tenta acionar os hooks com teclas
+sintetizadas. Isso pode falhar em sessões remotas/isoladas; valide teclas físicas
+manualmente. Veja [o relatório e roteiro de validação](docs/task-01-report.md).
 
 ## 🎯 Objetivo
 
