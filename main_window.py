@@ -19,7 +19,9 @@ class MainWindow:
         self.notebook.add(self.aba_audio, text="Audio")
         self.notebook.add(self.aba_atalhos, text="Atalhos")
 
-        self.actions.criar_botoes_dispositivos(self.aba_audio)
+        self.device_frame = tk.Frame(self.aba_audio)
+        self.device_frame.pack(fill="x")
+        self.buttons = {}
         tk.Button(self.aba_audio, text="Atualizar lista", command=self.actions.atualizar_lista).pack(pady=12)
 
         ttk.Label(self.aba_atalhos, text="Dispositivo").pack(pady=(20, 5))
@@ -69,3 +71,80 @@ class MainWindow:
         ttk.Button(acoes_frame, text="Remover selecionado", command=self.actions.remover_atalho).pack(side="left", padx=5)
 
         ttk.Label(self.root, textvariable=self.status_var, anchor="w").pack(side="bottom", fill="x", padx=8, pady=6)
+
+    def set_devices(self, rows, labels):
+        for child in self.device_frame.winfo_children():
+            child.destroy()
+        self.buttons.clear()
+        if not rows:
+            tk.Label(self.device_frame, text="Nenhum dispositivo de saida encontrado.").pack(pady=20)
+        for device_id, text in rows:
+            button = tk.Button(self.device_frame, text=text, width=56, anchor="w",
+                               command=lambda value=device_id: self.actions.trocar_dispositivo(value))
+            button.pack(padx=12, pady=5, fill="x")
+            self.buttons[device_id] = button
+        self.dropdown.config(values=['Selecione...'] + list(labels))
+        if self.dispositivo_var.get() not in labels:
+            self.dispositivo_var.set('Selecione...')
+
+    def set_hotkeys(self, rows):
+        for item in self.lista_atalhos.get_children():
+            self.lista_atalhos.delete(item)
+        for item_id, name, hotkey in rows:
+            self.lista_atalhos.insert('', 'end', iid=item_id, values=(name, hotkey))
+
+    def set_status(self, value):
+        self.status_var.set(value)
+
+    def set_recording_state(self, recording, value=None):
+        if value is not None:
+            self.tecla_var.set(value)
+        self.btn_gravar.config(state='disabled' if recording else 'normal')
+
+    def selected_shortcut(self):
+        items = self.lista_atalhos.selection()
+        return items[0] if items else None
+
+    def selected_device(self):
+        return self.dispositivo_var.get()
+
+    def hotkey_value(self):
+        return self.tecla_var.get()
+
+    def set_selection(self, device, hotkey):
+        self.dispositivo_var.set(device)
+        self.tecla_var.set(hotkey)
+
+    @staticmethod
+    def show_error(title, message):
+        from tkinter import messagebox
+        messagebox.showerror(title, message)
+
+    @staticmethod
+    def show_warning(title, message):
+        from tkinter import messagebox
+        messagebox.showwarning(title, message)
+
+    @staticmethod
+    def confirm(title, message):
+        from tkinter import messagebox
+        return messagebox.askyesno(title, message)
+
+    def hide(self):
+        self.root.withdraw()
+
+    def show(self):
+        self.root.deiconify()
+        self.root.lift()
+
+    def schedule(self, delay, callback):
+        self.root.after(delay, callback)
+
+    def on_close(self, callback):
+        self.root.protocol('WM_DELETE_WINDOW', callback)
+
+    def destroy(self):
+        self.root.destroy()
+
+    def run(self):
+        self.root.mainloop()

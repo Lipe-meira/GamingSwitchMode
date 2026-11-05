@@ -58,49 +58,49 @@ def main():
         nonlocal phase
         try:
             if time.monotonic() > deadline:
-                raise AssertionError(f'Timed out at phase {phase}: {ui.status_var.get()}')
+                raise AssertionError(f'Timed out at phase {phase}: {ui.window.status_var.get()}')
             if phase == 0 and icons and icons[0].visible:
                 result = subprocess.run([sys.executable, '-c',
                     "import audio_switcher as u; assert u.garantir_instancia_unica('GamingSwitchMode_AudioSwitcher_UniqueMutex') is None"],
                     capture_output=True, text=True, timeout=5)
                 assert result.returncode == 0, result.stderr
                 label = next(k for k, v in ui.device_labels().items() if v == playback)
-                ui.dispositivo_var.set(label)
-                ui.tecla_var.set('ctrl+alt+shift+f24')
+                ui.window.dispositivo_var.set(label)
+                ui.window.tecla_var.set('ctrl+alt+shift+f24')
                 ui.registrar_atalho()
                 assert ui.manager.config['bindings'][0]['device_id'] == playback
                 ui.hide_window()
-                assert ui.root.state() == 'withdrawn'
-                ui.root.after(500, lambda: activate('ctrl+alt+shift+f24'))
+                assert ui.window.root.state() == 'withdrawn'
+                ui.window.root.after(500, lambda: activate('ctrl+alt+shift+f24'))
                 phase = 1
             elif phase == 1 and len(switched) == 1:
-                ui.lista_atalhos.selection_set('id:' + playback)
+                ui.window.lista_atalhos.selection_set('id:' + playback)
                 ui.editar_atalho()
-                ui.tecla_var.set('ctrl+alt+shift+f23')
+                ui.window.tecla_var.set('ctrl+alt+shift+f23')
                 ui.registrar_atalho()
                 assert ConfigStore(ui.store.path).load() == ui.manager.config
                 ui.manager.close()
                 assert not ui.manager.restore()
-                ui.root.after(500, lambda: activate('ctrl+alt+shift+f23'))
+                ui.window.root.after(500, lambda: activate('ctrl+alt+shift+f23'))
                 phase = 2
             elif phase == 2 and len(switched) == 2:
                 assert switched == [playback, playback]
-                ui.lista_atalhos.selection_set('id:' + playback)
+                ui.window.lista_atalhos.selection_set('id:' + playback)
                 ui.remover_atalho()
                 assert not ui.manager.config['bindings']
                 assert not ui.manager.handles
                 ui.manager.config['unresolved'] = [{'legacy_index': '99', 'hotkey': 'ctrl+alt+shift+f24'}]
                 ui.store.save(ui.manager.config)
                 ui.refresh_views()
-                ui.lista_atalhos.selection_set('legacy:99')
+                ui.window.lista_atalhos.selection_set('legacy:99')
                 ui.editar_atalho()
-                assert ui.tecla_var.get() == 'ctrl+alt+shift+f24'
-                ui.dispositivo_var.set(next(k for k, v in ui.device_labels().items() if v == playback))
+                assert ui.window.tecla_var.get() == 'ctrl+alt+shift+f24'
+                ui.window.dispositivo_var.set(next(k for k, v in ui.device_labels().items() if v == playback))
                 ui.registrar_atalho()
                 assert not ui.manager.config['unresolved']
                 ui.show_window(None, None)
                 phase = 3
-            elif phase == 3 and ui.root.state() == 'normal':
+            elif phase == 3 and ui.window.root.state() == 'normal':
                 for parameter in ('Playback', 'PlaybackCommunication'):
                     current = json.loads(audio._run(f'Get-AudioDevice -{parameter} | Select-Object ID | ConvertTo-Json'))
                     assert current['ID'] == playback, current
@@ -112,7 +112,7 @@ def main():
             failures.append(traceback.format_exc())
             finish()
             return
-        ui.root.after(100, check)
+        ui.window.root.after(100, check)
 
     def loop(root):
         root.withdraw()
