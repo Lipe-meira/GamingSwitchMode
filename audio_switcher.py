@@ -13,6 +13,7 @@ import audio
 from configuration import ConfigStore, empty_config
 from hotkeys import HotkeyManager
 from system_tray import SystemTray
+from audio_service import AudioService
 
 import ctypes
 from ctypes import wintypes
@@ -88,22 +89,9 @@ def carregar_dispositivos():
 
 
 def trocar_dispositivo(device_id):
-    # Re-enumerate on activation so a reconnected endpoint works without restarting.
-    def worker():
-        try:
-            current = audio.listar_dispositivos()
-            if device_id not in current:
-                events.put(('status', f'Dispositivo indisponivel: {device_name_snapshot}'))
-                events.put(('devices', current))
-                return
-            audio.trocar_dispositivo(device_id)
-            events.put(('devices', current))
-            events.put(('status', f'Audio alterado para: {current[device_id]["Name"]}'))
-        except (RuntimeError, ValueError) as error:
-            events.put(('status', f'Erro ao trocar audio: {error}'))
     device_name_snapshot = device_name(device_id)
-    # One worker serializes PowerShell operations; no Tk calls from this thread.
-    audio_jobs.put(worker)
+    service = AudioService(audio, events)
+    audio_jobs.put(lambda: service.activate(device_id, device_name_snapshot))
 
 
 def atualizar_botao(device_id):
@@ -236,12 +224,7 @@ def remover_atalho():
 
 
 def atualizar_lista():
-    def worker():
-        try:
-            events.put(('devices', audio.listar_dispositivos()))
-        except RuntimeError as error:
-            events.put(('status', f'Erro ao atualizar dispositivos: {error}'))
-    audio_jobs.put(worker)
+    audio_jobs.put(AudioService(audio, events).refresh)
     errors = manager.restore()
     status_var.set('Atualizando dispositivos.' + (' ' + '; '.join(errors) if errors else ''))
 
