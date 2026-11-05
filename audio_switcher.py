@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw
 import audio
 from configuration import ConfigStore, empty_config
 from hotkeys import HotkeyManager
+from system_tray import SystemTray
 
 import ctypes
 from ctypes import wintypes
@@ -301,29 +302,19 @@ def hide_window():
 
 
 def show_window(icon, item):
-    events.put(('show',))
+    SystemTray(events).show_window(icon, item)
 
 
 def exit_app(icon, item):
-    icon.stop()
-    events.put(('exit',))
+    SystemTray(events).exit_app(icon, item)
 
 
 def create_image():
-    image = Image.new("RGB", (64, 64), "#111827")
-    draw = ImageDraw.Draw(image)
-    draw.rectangle((16, 22, 30, 42), fill="#60a5fa")
-    draw.polygon([(30, 22), (46, 12), (46, 52), (30, 42)], fill="#93c5fd")
-    return image
+    return SystemTray.create_image()
 
 
 def setup_tray():
-    menu = (
-        pystray.MenuItem("Mostrar", show_window, default=True),
-        pystray.MenuItem("Sair", exit_app),
-    )
-    icon = pystray.Icon("audio_switcher", create_image(), "Audio Switcher", menu)
-    icon.run()
+    SystemTray(events).run()
 
 
 def criar_botoes_dispositivos():
