@@ -6,6 +6,8 @@ from PIL import Image, ImageDraw
 class SystemTray:
     def __init__(self, events):
         self.events = events
+        self.icon = None
+        self.stop_requested = False
 
     def show_window(self, icon, item):
         self.events.put(('show',))
@@ -25,4 +27,11 @@ class SystemTray:
     def run(self):
         menu = (pystray.MenuItem('Mostrar', self.show_window, default=True),
                 pystray.MenuItem('Sair', self.exit_app))
-        pystray.Icon('audio_switcher', self.create_image(), 'Audio Switcher', menu).run()
+        self.icon = pystray.Icon('audio_switcher', self.create_image(), 'Audio Switcher', menu)
+        if not self.stop_requested:
+            self.icon.run()
+
+    def stop(self):
+        self.stop_requested = True
+        if self.icon is not None:
+            self.icon.stop()

@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 class UITests(unittest.TestCase):
     def setUp(self):
-        self.ui = importlib.import_module('audio_switcher')
+        self.ui = importlib.import_module('application').ApplicationController()
         self.ui.events = queue.Queue()
         self.ui.audio_jobs = queue.Queue()
         self.ui.dispositivos = {}
@@ -15,8 +15,8 @@ class UITests(unittest.TestCase):
         self.ui.manager.config = {'bindings': [{'device_id': 'a', 'name': 'Headset'}]}
 
     def test_absent_device_does_not_switch_and_reconnection_uses_same_id(self):
-        with patch.object(self.ui.audio, 'listar_dispositivos', return_value={}) as listing, \
-                patch.object(self.ui.audio, 'trocar_dispositivo') as switch:
+        with patch.object(importlib.import_module('audio'), 'listar_dispositivos', return_value={}) as listing, \
+                patch.object(importlib.import_module('audio'), 'trocar_dispositivo') as switch:
             self.ui.trocar_dispositivo('a')
             self.ui.audio_jobs.get_nowait()()
             switch.assert_not_called()

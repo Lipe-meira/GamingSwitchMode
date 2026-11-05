@@ -17,7 +17,10 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import audio
-import audio_switcher as ui
+import application as module
+import pystray
+from tkinter import messagebox
+ui = module.ApplicationController()
 from configuration import ConfigStore
 
 
@@ -25,8 +28,8 @@ def main():
     playback = json.loads(audio._run('Get-AudioDevice -Playback | Select-Object ID | ConvertTo-Json'))['ID']
     communication = json.loads(audio._run('Get-AudioDevice -PlaybackCommunication | Select-Object ID | ConvertTo-Json'))['ID']
     original_switch = audio.trocar_dispositivo
-    original_loop = ui.tk.Tk.mainloop
-    original_icon = ui.pystray.Icon
+    original_loop = module.tk.Tk.mainloop
+    original_icon = pystray.Icon
     icons, switched, failures = [], [], []
     phase = 0
     deadline = time.monotonic() + 25
@@ -61,7 +64,7 @@ def main():
                 raise AssertionError(f'Timed out at phase {phase}: {ui.window.status_var.get()}')
             if phase == 0 and icons and icons[0].visible:
                 result = subprocess.run([sys.executable, '-c',
-                    "import audio_switcher as u; assert u.garantir_instancia_unica('GamingSwitchMode_AudioSwitcher_UniqueMutex') is None"],
+                    "import windows_instance as u; assert u.garantir_instancia_unica('GamingSwitchMode_AudioSwitcher_UniqueMutex') is None"],
                     capture_output=True, text=True, timeout=5)
                 assert result.returncode == 0, result.stderr
                 label = next(k for k, v in ui.device_labels().items() if v == playback)
@@ -122,18 +125,18 @@ def main():
     try:
         with tempfile.TemporaryDirectory(prefix='gsm-smoke-') as directory:
             store = ConfigStore(Path(directory) / 'config.json')
-            with patch.object(ui, 'ConfigStore', return_value=store), \
-                    patch.object(ui.tk.Tk, 'mainloop', loop), \
-                    patch.object(ui.pystray, 'Icon', side_effect=icon_factory), \
+            with patch.object(module, 'ConfigStore', return_value=store), \
+                    patch.object(module.tk.Tk, 'mainloop', loop), \
+                    patch.object(pystray, 'Icon', side_effect=icon_factory), \
                     patch.object(audio, 'trocar_dispositivo', side_effect=switch), \
-                    patch.object(ui.messagebox, 'showerror', side_effect=fail_dialog), \
-                    patch.object(ui.messagebox, 'showwarning', side_effect=fail_dialog), \
-                    patch.object(ui.messagebox, 'askyesno', return_value=True):
-                ui.main()
+                    patch.object(messagebox, 'showerror', side_effect=fail_dialog), \
+                    patch.object(messagebox, 'showwarning', side_effect=fail_dialog), \
+                    patch.object(messagebox, 'askyesno', return_value=True):
+                ui.run()
             if failures:
                 raise AssertionError('\n'.join(failures))
     finally:
-        if hasattr(ui, 'manager'):
+        if ui.manager is not None:
             ui.manager.close()
         if icons:
             icons[0].stop()

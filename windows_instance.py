@@ -28,3 +28,11 @@ def garantir_instancia_unica(nome_mutex: str):
         return None
 
     return mutex
+
+
+def liberar_mutex(handle):
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    if not kernel32.CloseHandle(handle):
+        raise ctypes.WinError(ctypes.get_last_error())
