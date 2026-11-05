@@ -159,7 +159,8 @@ IDs não garantem continuidade após reinstalação de drivers/Windows.
 ## 🔽 Bandeja do sistema
 
 Ao fechar a janela, o GamingSwitchMode não encerra imediatamente. Se o ícone da
-bandeja ainda não estiver visível ou falhar, a janela permanece aberta e informa o estado.
+bandeja ainda não estiver visível ou falhar, uma confirmação permite encerrar o
+aplicativo ou manter a janela aberta para aguardar.
 
 Ele continua executando na bandeja do sistema para que os atalhos permaneçam funcionando.
 

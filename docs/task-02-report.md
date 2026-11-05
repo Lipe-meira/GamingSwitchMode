@@ -9,10 +9,9 @@ restauração de atalhos, filas, workers e ciclo de vida. `audio.py`,
 `configuration.py` e `hotkeys.py` já isolavam as respectivas operações, mas a
 coordenação e a apresentação permaneciam acopladas.
 
-Este relatório registra o estado local após a TASK 02.4.2. A TASK 02 ainda requer
-revisão externa da versão publicada e avaliação das validações pendentes antes de
-ser definitivamente encerrada. As correções locais 02.4.2 não estavam publicadas
-quando este relatório foi escrito.
+As correções da TASK 02.4.2 foram publicadas na branch de arquitetura. A TASK 02
+ainda requer avaliação da revisão externa e das validações pendentes antes de ser
+definitivamente encerrada.
 
 ## Estrutura e dependências
 
@@ -72,14 +71,15 @@ inclui `modules/AudioDeviceCmdlets`; o build demonstrou que os imports são cole
   chamada. Não se executou o modo sintético nesta validação final.
 - Se o ícone ainda não estiver visível ou a bandeja falhar, fechar a janela não a
   oculta. Uma exceção ou término inesperado do loop da bandeja é enviado à fila e
-  o Tk volta a mostrar a janela. Testes simulam falha e confirmam que a thread da
+  o Tk volta a mostrar a janela. Ao fechar sem bandeja operacional, uma confirmação
+  permite encerrar ou aguardar. Testes simulam falha e confirmam que a thread da
   bandeja não chama métodos da janela diretamente.
 - A cobertura adicional inclui falha na construção da janela e liberação do mutex,
   encerramento repetido, eventos pendentes e trabalhos de áudio enfileirados.
 
 ## Evidências desta validação
 
-- `python -m unittest discover -s tests -v`: **47 testes passaram**. Testes usam
+- `python -m unittest discover -s tests -v`: **49 testes passaram**. Testes usam
   fakes/mocks para integração de áudio/teclado; testes da janela criam widgets Tk
   reais na sessão gráfica. Os cenários de falhas e de trabalhos pendentes são
   simulados, não dependem de dispositivos físicos.
