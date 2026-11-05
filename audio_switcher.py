@@ -14,6 +14,7 @@ from configuration import ConfigStore, empty_config
 from hotkeys import HotkeyManager
 from system_tray import SystemTray
 from audio_service import AudioService
+from main_window import MainWindow
 
 from windows_instance import garantir_instancia_unica
 
@@ -318,68 +319,21 @@ def main():
         messagebox.showerror('Erro de configuracao', f'{error}\nO arquivo foi preservado; corrija-o e reinicie.')
     manager = HotkeyManager(config, store, keyboard, lambda *args: events.put(('activate', *args)))
 
-    status_var = tk.StringVar(value="Pronto.")
-    tecla_var = tk.StringVar()
-    dispositivo_var = tk.StringVar(value="Selecione...")
-
-    notebook = ttk.Notebook(root)
-    notebook.pack(expand=True, fill="both")
-
-    aba_audio = ttk.Frame(notebook)
-    aba_atalhos = ttk.Frame(notebook)
-    notebook.add(aba_audio, text="Audio")
-    notebook.add(aba_atalhos, text="Atalhos")
-
-    criar_botoes_dispositivos()
-    tk.Button(aba_audio, text="Atualizar lista", command=atualizar_lista).pack(pady=12)
-
-    ttk.Label(aba_atalhos, text="Dispositivo").pack(pady=(20, 5))
-    dropdown = ttk.Combobox(
-        aba_atalhos,
-        textvariable=dispositivo_var,
-        values=["Selecione..."] + list(device_labels()),
-        state="readonly",
-        width=58,
-    )
-    dropdown.pack(pady=5)
-
-    ttk.Label(aba_atalhos, text="Atalho").pack(pady=(16, 5))
-    entrada_tecla = ttk.Entry(aba_atalhos, textvariable=tecla_var, width=34, state="readonly")
-    entrada_tecla.pack(pady=5)
-
-    btn_gravar = ttk.Button(aba_atalhos, text="Gravar atalho", command=gravar_tecla)
-    btn_gravar.pack(pady=8)
-
-    ttk.Button(aba_atalhos, text="Registrar atalho", command=registrar_atalho).pack(pady=8)
-
-    ttk.Label(aba_atalhos, text="Atalhos registrados").pack(pady=(18, 5))
-    lista_frame = ttk.Frame(aba_atalhos)
-    lista_frame.pack(padx=12, pady=5, fill="both", expand=True)
-
-    lista_atalhos = ttk.Treeview(
-        lista_frame,
-        columns=("dispositivo", "atalho"),
-        show="headings",
-        height=6,
-        selectmode="browse",
-    )
-    lista_atalhos.heading("dispositivo", text="Dispositivo")
-    lista_atalhos.heading("atalho", text="Atalho")
-    lista_atalhos.column("dispositivo", width=360, anchor="w")
-    lista_atalhos.column("atalho", width=120, anchor="center")
-    lista_atalhos.pack(side="left", fill="both", expand=True)
-    lista_atalhos.bind("<Double-1>", lambda event: editar_atalho())
-
-    scroll_atalhos = ttk.Scrollbar(lista_frame, orient="vertical", command=lista_atalhos.yview)
-    scroll_atalhos.pack(side="right", fill="y")
-    lista_atalhos.configure(yscrollcommand=scroll_atalhos.set)
-
-    acoes_frame = ttk.Frame(aba_atalhos)
-    acoes_frame.pack(pady=(4, 12))
-    ttk.Button(acoes_frame, text="Editar selecionado", command=editar_atalho).pack(side="left", padx=5)
-    ttk.Button(acoes_frame, text="Remover selecionado", command=remover_atalho).pack(side="left", padx=5)
-
-    ttk.Label(root, textvariable=status_var, anchor="w").pack(side="bottom", fill="x", padx=8, pady=6)
+    # The window receives explicit actions; the existing controller retains lifecycle.
+    from types import SimpleNamespace
+    def initialize_audio_tab(frame):
+        global aba_audio
+        aba_audio = frame
+        criar_botoes_dispositivos()
+    actions = SimpleNamespace(
+        criar_botoes_dispositivos=initialize_audio_tab, device_labels=device_labels,
+        atualizar_lista=atualizar_lista, gravar_tecla=gravar_tecla,
+        registrar_atalho=registrar_atalho, editar_atalho=editar_atalho,
+        remover_atalho=remover_atalho)
+    window = MainWindow(root, actions)
+    status_var, tecla_var, dispositivo_var = window.status_var, window.tecla_var, window.dispositivo_var
+    notebook, aba_audio, aba_atalhos = window.notebook, window.aba_audio, window.aba_atalhos
+    dropdown, btn_gravar, lista_atalhos = window.dropdown, window.btn_gravar, window.lista_atalhos
 
     errors = manager.restore()
     atualizar_lista_atalhos()
