@@ -268,10 +268,17 @@ class ApplicationController:
 
 
     def hide_window(self):
+        if self.stopping:
+            return
         if self.tray is not None and self.tray.is_operational():
             self.window.hide()
         else:
             self.window.set_status('Bandeja indisponivel; janela mantida aberta.')
+            if MainWindow.confirm('Bandeja indisponivel',
+                    'A bandeja ainda nao esta disponivel ou falhou.\n'
+                    'Deseja encerrar o aplicativo?\n'
+                    'Selecione Nao para manter a janela aberta e aguardar.'):
+                self.shutdown()
 
 
     def show_window(self, icon, item):

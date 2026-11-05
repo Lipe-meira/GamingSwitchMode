@@ -53,12 +53,44 @@ class ApplicationTests(unittest.TestCase):
         controller.window = Mock()
         controller.tray = Mock()
         controller.tray.is_operational.return_value = False
-        controller.hide_window()
+        with patch.object(application.MainWindow, 'confirm', return_value=False):
+            controller.hide_window()
         controller.window.hide.assert_not_called()
         controller.window.set_status.assert_called()
         controller.tray.is_operational.return_value = True
         controller.hide_window()
         controller.window.hide.assert_called_once()
+
+    def test_close_after_permanent_tray_failure_releases_resources(self):
+        controller = application.ApplicationController()
+        controller.window = Mock()
+        controller.manager = Mock()
+        controller.tray = Mock()
+        controller.tray.is_operational.return_value = False
+        controller.tray.run.side_effect = RuntimeError('unavailable')
+        controller.app_mutex = 42
+        controller.setup_tray()
+        controller.process_events()
+        with patch.object(application.MainWindow, 'confirm', return_value=True), \
+                patch.object(application, 'liberar_mutex') as release:
+            controller.hide_window()
+            controller.hide_window()
+        controller.manager.close.assert_called_once_with()
+        controller.tray.stop.assert_called_once_with()
+        controller.window.destroy.assert_called_once_with()
+        controller.window.hide.assert_not_called()
+        release.assert_called_once_with(42)
+
+    def test_close_during_tray_startup_can_wait_or_exit(self):
+        controller = application.ApplicationController()
+        controller.window = Mock()
+        controller.tray = None
+        with patch.object(application.MainWindow, 'confirm', side_effect=[False, True]):
+            controller.hide_window()
+            self.assertFalse(controller.stopping)
+            controller.hide_window()
+        self.assertTrue(controller.stopping)
+        controller.window.destroy.assert_called_once_with()
 
     def test_tray_failure_is_queued_and_window_restored_on_main_thread(self):
         controller = application.ApplicationController()
