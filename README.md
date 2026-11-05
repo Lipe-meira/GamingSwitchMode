@@ -185,6 +185,9 @@ GamingSwitchMode/
 │
 ├── audio_switcher.py    # Interface, atalhos e tray icon
 ├── audio.py             # Controle dos dispositivos de áudio
+├── audio_service.py     # Operações de áudio e eventos para a interface
+├── system_tray.py       # Ícone e eventos da bandeja
+├── windows_instance.py  # Mutex de instância única no Windows
 ├── configuration.py     # Schema, migração, backup e gravação atômica
 ├── hotkeys.py           # Registro transacional dos atalhos
 ├── tests/               # Testes unitários e smoke test Windows opcional
