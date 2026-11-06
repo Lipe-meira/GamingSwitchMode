@@ -6,6 +6,25 @@ from ui_theme import (apply_theme, BACKGROUND, SURFACE, ELEVATED, ACCENT, TEXT, 
                       PRIMARY, PRIMARY_HOVER, PRIMARY_TEXT, DESTRUCTIVE, DESTRUCTIVE_HOVER)
 
 
+def keyboard_button(button):
+    """Expose CustomTkinter's frame to Tk focus traversal and keyboard activation."""
+    button._text_label.configure(takefocus=1)
+    button.configure(border_width=2, border_color=button.cget('fg_color'))
+    def focus_in(event):
+        button.configure(border_color=ACCENT)
+    def focus_out(event):
+        button.configure(border_color=button.cget('fg_color'))
+    def activate(event):
+        if button.cget('state') != 'disabled':
+            button.invoke()
+        return 'break'
+    button.bind('<FocusIn>', focus_in)
+    button.bind('<FocusOut>', focus_out)
+    button.bind('<Return>', activate)
+    button.bind('<space>', activate)
+    return button
+
+
 class MainWindow:
     def __init__(self, root, actions):
         self.root = root
@@ -28,6 +47,8 @@ class MainWindow:
             corner_radius=10, font=ctk.CTkFont(family='Segoe UI', size=13, weight='bold'))
         self.navigation.pack(fill='x', padx=24, pady=(4, 8))
         self.navigation.set('Dispositivos')
+        for nav_button in self.navigation._buttons_dict.values():
+            keyboard_button(nav_button)
         self.page_container = tk.Frame(root, bg=BACKGROUND)
         self.page_container.pack(expand=True, fill='both', padx=24, pady=(0, 4))
         self.aba_audio = ctk.CTkFrame(self.page_container, fg_color='transparent')
@@ -41,6 +62,7 @@ class MainWindow:
             fg_color=ELEVATED, hover_color='#304963', text_color=TEXT, corner_radius=9,
             command=self.actions.atualizar_lista)
         self.refresh_button.pack(side='right')
+        keyboard_button(self.refresh_button)
         self.device_frame = ctk.CTkScrollableFrame(self.aba_audio, fg_color='transparent',
             scrollbar_button_color=ELEVATED, scrollbar_button_hover_color=ACCENT)
         self.device_frame.pack(fill='both', expand=True)
@@ -69,6 +91,8 @@ class MainWindow:
         self.btn_gravar.pack(side='left', padx=(0, 8))
         self.btn_registrar = ctk.CTkButton(capture_actions, text='Registrar atalho', command=self.actions.registrar_atalho, fg_color=PRIMARY, hover_color=PRIMARY_HOVER, text_color=PRIMARY_TEXT, width=140)
         self.btn_registrar.pack(side='left')
+        keyboard_button(self.btn_gravar)
+        keyboard_button(self.btn_registrar)
         ctk.CTkLabel(self.aba_atalhos, text='Atalhos registrados', text_color=TEXT,
                      font=ctk.CTkFont(family='Segoe UI', size=16, weight='bold')).pack(anchor='w', pady=(2, 4))
         self.shortcut_list = ctk.CTkScrollableFrame(self.aba_atalhos, fg_color='transparent',
@@ -103,6 +127,7 @@ class MainWindow:
                 fg_color=ELEVATED, hover_color='#304963', text_color=TEXT, corner_radius=9,
                 command=lambda value=device_id: self.actions.trocar_dispositivo(value))
             button.pack(side='right', padx=(12, 0))
+            keyboard_button(button)
             label = ctk.CTkLabel(content, text=text, text_color=TEXT, anchor='w', justify='left',
                                  font=ctk.CTkFont(family='Segoe UI', size=13, weight='bold'), wraplength=430)
             label.pack(fill='x', anchor='w')
@@ -136,6 +161,8 @@ class MainWindow:
             remove = ctk.CTkButton(buttons, text='Remover', width=72, fg_color=DESTRUCTIVE, hover_color=DESTRUCTIVE_HOVER,
                 command=lambda key=item_id: self._shortcut_action(key, self.actions.remover_atalho))
             remove.pack(side='left', padx=3)
+            keyboard_button(edit)
+            keyboard_button(remove)
             text = ctk.CTkLabel(card, text=f'{name}\n{hotkey}', text_color=TEXT, anchor='w', justify='left', wraplength=400)
             text.pack(fill='x', padx=14, pady=8)
             self.shortcut_rows[item_id] = (name, hotkey, edit, remove)

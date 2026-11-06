@@ -120,3 +120,44 @@ class MainWindowTests(unittest.TestCase):
         self.assertGreater(window.device_labels['a'].cget('wraplength'), 0)
         window.buttons['a'].invoke()
         actions.trocar_dispositivo.assert_called_once_with('a')
+
+    def test_keyboard_activation_targets_one_shortcut(self):
+        root = tk.Tk()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        window._select_page('Atalhos')
+        window.set_hotkeys([('id:a', 'Disponivel', 'ctrl+1'), ('id:b', 'Indisponivel', 'ctrl+2')])
+        button = window.shortcut_rows['id:b'][2]
+        root.update()
+        button.focus_force()
+        root.update()
+        button.event_generate('<KeyPress-Return>')
+        root.update()
+        self.assertEqual(window.selected_shortcut(), 'id:b')
+        actions.editar_atalho.assert_called_once_with()
+
+    def test_keyboard_navigation_and_disabled_button(self):
+        root = tk.Tk()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        root.update()
+        nav = window.navigation._buttons_dict['Atalhos']
+        nav.focus_force()
+        root.update()
+        nav.event_generate('<KeyPress-space>')
+        root.update()
+        self.assertEqual(window.navigation.get(), 'Atalhos')
+        window.set_recording_state(True, 'Gravando...')
+        window.btn_registrar.focus_force()
+        root.update()
+        window.btn_registrar.event_generate('<KeyPress-Return>')
+        root.update()
+        actions.registrar_atalho.assert_not_called()
