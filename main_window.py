@@ -2,7 +2,8 @@
 import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
-from ui_theme import apply_theme, BACKGROUND, SURFACE, ELEVATED, ACCENT, TEXT, MUTED
+from ui_theme import (apply_theme, BACKGROUND, SURFACE, ELEVATED, ACCENT, TEXT, MUTED,
+                      PRIMARY, PRIMARY_HOVER, PRIMARY_TEXT, DESTRUCTIVE, DESTRUCTIVE_HOVER)
 
 
 class MainWindow:
@@ -66,7 +67,7 @@ class MainWindow:
         capture_actions.pack(anchor='w', padx=16, pady=(4, 12))
         self.btn_gravar = ctk.CTkButton(capture_actions, text='Gravar atalho', command=self.actions.gravar_tecla, fg_color=ELEVATED, hover_color='#304963', width=130)
         self.btn_gravar.pack(side='left', padx=(0, 8))
-        self.btn_registrar = ctk.CTkButton(capture_actions, text='Registrar atalho', command=self.actions.registrar_atalho, fg_color=ELEVATED, hover_color='#304963', width=140)
+        self.btn_registrar = ctk.CTkButton(capture_actions, text='Registrar atalho', command=self.actions.registrar_atalho, fg_color=PRIMARY, hover_color=PRIMARY_HOVER, text_color=PRIMARY_TEXT, width=140)
         self.btn_registrar.pack(side='left')
         ctk.CTkLabel(self.aba_atalhos, text='Atalhos registrados', text_color=TEXT,
                      font=ctk.CTkFont(family='Segoe UI', size=16, weight='bold')).pack(anchor='w', pady=(2, 4))
@@ -132,7 +133,7 @@ class MainWindow:
             edit = ctk.CTkButton(buttons, text='Editar', width=66, fg_color=ELEVATED,
                 command=lambda key=item_id: self._shortcut_action(key, self.actions.editar_atalho))
             edit.pack(side='left', padx=3)
-            remove = ctk.CTkButton(buttons, text='Remover', width=72, fg_color=ELEVATED,
+            remove = ctk.CTkButton(buttons, text='Remover', width=72, fg_color=DESTRUCTIVE, hover_color=DESTRUCTIVE_HOVER,
                 command=lambda key=item_id: self._shortcut_action(key, self.actions.remover_atalho))
             remove.pack(side='left', padx=3)
             text = ctk.CTkLabel(card, text=f'{name}\n{hotkey}', text_color=TEXT, anchor='w', justify='left', wraplength=400)

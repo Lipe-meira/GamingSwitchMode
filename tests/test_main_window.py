@@ -71,6 +71,24 @@ class MainWindowTests(unittest.TestCase):
         self.assertIn('aguardando', window.capture_hint.cget('text').lower())
         window.set_recording_state(False, 'ctrl+2')
         self.assertEqual(window.hotkey_value(), 'ctrl+2')
+        self.assertEqual(str(window.btn_registrar.cget('state')), 'normal')
+
+    def test_shortcut_card_buttons_target_correct_item(self):
+        root = tk.Tk()
+        root.withdraw()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        window.set_hotkeys([('id:a', 'Disponivel', 'ctrl+1'), ('legacy:2', 'Legado', 'ctrl+2')])
+        window.shortcut_rows['legacy:2'][2].invoke()
+        self.assertEqual(window.selected_shortcut(), 'legacy:2')
+        actions.editar_atalho.assert_called_once_with()
+        window.shortcut_rows['id:a'][3].invoke()
+        self.assertEqual(window.selected_shortcut(), 'id:a')
+        actions.remover_atalho.assert_called_once_with()
 
     def test_navigation_selects_both_sections(self):
         root = tk.Tk()
