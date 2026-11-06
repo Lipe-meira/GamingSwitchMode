@@ -1,11 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_data_files
 
 
 a = Analysis(
     ['audio_switcher.py'],
     pathex=[],
     binaries=[],
-    datas=[('modules/AudioDeviceCmdlets', 'modules/AudioDeviceCmdlets')],
+    datas=[('modules/AudioDeviceCmdlets', 'modules/AudioDeviceCmdlets')] + collect_data_files('customtkinter'),
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

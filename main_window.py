@@ -1,6 +1,7 @@
 """Tk window construction; actions are supplied by the application."""
 import tkinter as tk
 from tkinter import ttk
+import customtkinter as ctk
 from ui_theme import apply_theme, BACKGROUND, SURFACE, ELEVATED, ACCENT, TEXT, MUTED
 
 
@@ -108,7 +109,8 @@ class MainWindow:
         if not rows:
             tk.Label(self.device_frame, text="Nenhum dispositivo de saída encontrado.\nConecte um dispositivo e atualize a lista.", bg=BACKGROUND, fg=MUTED, font=("Segoe UI", 11)).pack(pady=40)
         for device_id, text in rows:
-            card = tk.Frame(self.device_frame, bg=SURFACE, highlightbackground=ELEVATED, highlightthickness=1)
+            card = ctk.CTkFrame(self.device_frame, fg_color=SURFACE, corner_radius=12,
+                                border_color=ELEVATED, border_width=1)
             card.pack(pady=5, fill='x')
             tk.Label(card, text='SAÍDA DISPONÍVEL', bg=SURFACE, fg=ACCENT, font=('Segoe UI', 8, 'bold'), anchor='w').pack(fill='x', padx=16, pady=(11, 0))
             button = tk.Button(card, text=text + '\nSelecionar saída  →', anchor='w', justify='left', wraplength=560, bg=SURFACE, fg=TEXT,
