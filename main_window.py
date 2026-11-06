@@ -40,7 +40,8 @@ class MainWindow:
         self.device_frame = tk.Frame(self.device_canvas, bg=BACKGROUND)
         self.device_frame_id = self.device_canvas.create_window((0, 0), window=self.device_frame, anchor='nw')
         self.device_frame.bind('<Configure>', lambda event: self.device_canvas.configure(scrollregion=self.device_canvas.bbox('all')))
-        self.device_canvas.bind('<Configure>', lambda event: self.device_canvas.itemconfigure(self.device_frame_id, width=event.width))
+        self.device_canvas.bind('<Configure>', self._resize_devices)
+        self.device_canvas.bind('<MouseWheel>', lambda event: self.device_canvas.yview_scroll(-int(event.delta / 120), 'units'))
         self.buttons = {}
 
         ttk.Label(self.aba_atalhos, text="Seus atalhos", font=("Segoe UI", 15, "bold")).pack(anchor="w", pady=(18, 4))
@@ -95,6 +96,11 @@ class MainWindow:
         self.lista_atalhos.configure(yscrollcommand=scroll_atalhos.set)
 
 
+    def _resize_devices(self, event):
+        self.device_canvas.itemconfigure(self.device_frame_id, width=event.width)
+        for button in self.buttons.values():
+            button.configure(wraplength=max(200, event.width - 60))
+
     def set_devices(self, rows, labels):
         for child in self.device_frame.winfo_children():
             child.destroy()
@@ -105,7 +111,7 @@ class MainWindow:
             card = tk.Frame(self.device_frame, bg=SURFACE, highlightbackground=ELEVATED, highlightthickness=1)
             card.pack(pady=5, fill='x')
             tk.Label(card, text='SAÍDA DISPONÍVEL', bg=SURFACE, fg=ACCENT, font=('Segoe UI', 8, 'bold'), anchor='w').pack(fill='x', padx=16, pady=(11, 0))
-            button = tk.Button(card, text=text + '   →', anchor='w', bg=SURFACE, fg=TEXT,
+            button = tk.Button(card, text=text + '\nSelecionar saída  →', anchor='w', justify='left', wraplength=560, bg=SURFACE, fg=TEXT,
                                activebackground=ELEVATED, activeforeground=TEXT, relief='flat',
                                bd=0, padx=14, pady=10, font=('Segoe UI', 10), cursor='hand2',
                                highlightthickness=1, highlightbackground=SURFACE, highlightcolor=ACCENT,

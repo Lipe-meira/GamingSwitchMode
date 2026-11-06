@@ -87,3 +87,18 @@ class MainWindowTests(unittest.TestCase):
         self.assertEqual(window.notebook.select(), str(window.aba_atalhos))
         window.notebook.select(window.aba_audio)
         self.assertEqual(window.notebook.select(), str(window.aba_audio))
+
+    def test_device_card_has_explicit_action_and_wraps_long_names(self):
+        root = tk.Tk()
+        root.withdraw()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        window.set_devices([('a', 'Saída longa ' * 15)], {})
+        self.assertIn('Selecionar saída', window.buttons['a'].cget('text'))
+        self.assertGreater(window.buttons['a'].cget('wraplength'), 0)
+        window.buttons['a'].invoke()
+        actions.trocar_dispositivo.assert_called_once_with('a')
