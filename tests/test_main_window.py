@@ -41,7 +41,9 @@ class MainWindowTests(unittest.TestCase):
 
         buttons = {child.cget('text'): child for child in descendants(root)
                    if child.winfo_class() in ('TButton', 'Button')}
-        for label, method in [('Atualizar lista', 'atualizar_lista'),
+        window.refresh_button.invoke()
+        actions.atualizar_lista.assert_called_once_with()
+        for label, method in [
                               ('Gravar atalho', 'gravar_tecla'),
                               ('Registrar atalho', 'registrar_atalho'),
                               ('Editar selecionado', 'editar_atalho'),
@@ -83,10 +85,12 @@ class MainWindowTests(unittest.TestCase):
             'registrar_atalho', 'editar_atalho', 'remover_atalho')})
         actions.device_labels.return_value = {}
         window = main_window.MainWindow(root, actions)
-        window.notebook.select(window.aba_atalhos)
-        self.assertEqual(window.notebook.select(), str(window.aba_atalhos))
-        window.notebook.select(window.aba_audio)
-        self.assertEqual(window.notebook.select(), str(window.aba_audio))
+        window._select_page('Atalhos')
+        self.assertEqual(window.navigation.get(), 'Atalhos')
+        self.assertTrue(window.aba_atalhos.winfo_manager())
+        window._select_page('Dispositivos')
+        self.assertEqual(window.navigation.get(), 'Dispositivos')
+        self.assertTrue(window.aba_audio.winfo_manager())
 
     def test_device_card_has_explicit_action_and_wraps_long_names(self):
         root = tk.Tk()
@@ -99,6 +103,6 @@ class MainWindowTests(unittest.TestCase):
         window = main_window.MainWindow(root, actions)
         window.set_devices([('a', 'Saída longa ' * 15)], {})
         self.assertIn('Selecionar saída', window.buttons['a'].cget('text'))
-        self.assertGreater(window.buttons['a'].cget('wraplength'), 0)
+        self.assertGreater(window.device_labels['a'].cget('wraplength'), 0)
         window.buttons['a'].invoke()
         actions.trocar_dispositivo.assert_called_once_with('a')

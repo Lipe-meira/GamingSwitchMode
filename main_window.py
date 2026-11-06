@@ -11,39 +11,40 @@ class MainWindow:
         self.actions = actions
         apply_theme(root)
         root.geometry('900x700')
-        header = ttk.Frame(root, padding=(24, 20, 24, 8))
-        header.pack(fill='x')
-        ttk.Label(header, text='GamingSwitchMode', style='Title.TLabel').pack(anchor='w')
-        ttk.Label(header, text='Seu áudio, no dispositivo certo.', style='Subtitle.TLabel').pack(anchor='w', pady=(3, 0))
+        header = ctk.CTkFrame(root, fg_color='transparent')
+        header.pack(fill='x', padx=24, pady=(20, 8))
+        ctk.CTkLabel(header, text='GamingSwitchMode', text_color=TEXT, font=ctk.CTkFont(family='Segoe UI', size=22, weight='bold')).pack(anchor='w')
+        ctk.CTkLabel(header, text='Seu áudio, no dispositivo certo.', text_color=MUTED, font=ctk.CTkFont(family='Segoe UI', size=12)).pack(anchor='w')
         self.status_var = tk.StringVar(value="Pronto.")
         self.tecla_var = tk.StringVar()
         self.dispositivo_var = tk.StringVar(value="Selecione...")
 
         ttk.Label(self.root, textvariable=self.status_var, anchor="w").pack(side="bottom", fill="x", padx=24, pady=6)
 
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(expand=True, fill="both", padx=24, pady=(8, 0))
-
-        self.aba_audio = ttk.Frame(self.notebook)
-        self.aba_atalhos = ttk.Frame(self.notebook)
-        self.notebook.add(self.aba_audio, text="Dispositivos")
-        self.notebook.add(self.aba_atalhos, text="Atalhos")
-
-        device_header = ttk.Frame(self.aba_audio, padding=(0, 18, 0, 10))
-        device_header.pack(fill='x')
-        ttk.Label(device_header, text='Saídas de áudio', font=('Segoe UI', 15, 'bold')).pack(side='left')
-        ttk.Button(device_header, text='Atualizar lista', command=self.actions.atualizar_lista).pack(side='right')
-        self.device_canvas = tk.Canvas(self.aba_audio, bg=BACKGROUND, highlightthickness=0, borderwidth=0)
-        self.device_scroll = ttk.Scrollbar(self.aba_audio, orient='vertical', command=self.device_canvas.yview)
-        self.device_canvas.configure(yscrollcommand=self.device_scroll.set)
-        self.device_scroll.pack(side='right', fill='y')
-        self.device_canvas.pack(side='left', fill='both', expand=True)
-        self.device_frame = tk.Frame(self.device_canvas, bg=BACKGROUND)
-        self.device_frame_id = self.device_canvas.create_window((0, 0), window=self.device_frame, anchor='nw')
-        self.device_frame.bind('<Configure>', lambda event: self.device_canvas.configure(scrollregion=self.device_canvas.bbox('all')))
-        self.device_canvas.bind('<Configure>', self._resize_devices)
-        self.device_canvas.bind('<MouseWheel>', lambda event: self.device_canvas.yview_scroll(-int(event.delta / 120), 'units'))
+        self.navigation = ctk.CTkSegmentedButton(root, values=['Dispositivos', 'Atalhos'],
+            command=self._select_page, selected_color=ELEVATED, selected_hover_color=ELEVATED,
+            unselected_color=SURFACE, unselected_hover_color=ELEVATED, text_color=TEXT,
+            corner_radius=10, font=ctk.CTkFont(family='Segoe UI', size=13, weight='bold'))
+        self.navigation.pack(fill='x', padx=24, pady=(4, 8))
+        self.navigation.set('Dispositivos')
+        self.page_container = tk.Frame(root, bg=BACKGROUND)
+        self.page_container.pack(expand=True, fill='both', padx=24, pady=(0, 4))
+        self.aba_audio = ctk.CTkFrame(self.page_container, fg_color='transparent')
+        self.aba_atalhos = ttk.Frame(self.page_container)
+        self.aba_audio.pack(fill='both', expand=True)
+        device_header = ctk.CTkFrame(self.aba_audio, fg_color='transparent')
+        device_header.pack(fill='x', pady=(8, 10))
+        ctk.CTkLabel(device_header, text='Saídas de áudio', text_color=TEXT,
+                     font=ctk.CTkFont(family='Segoe UI', size=18, weight='bold')).pack(side='left')
+        self.refresh_button = ctk.CTkButton(device_header, text='Atualizar lista', width=120,
+            fg_color=ELEVATED, hover_color='#304963', text_color=TEXT, corner_radius=9,
+            command=self.actions.atualizar_lista)
+        self.refresh_button.pack(side='right')
+        self.device_frame = ctk.CTkScrollableFrame(self.aba_audio, fg_color='transparent',
+            scrollbar_button_color=ELEVATED, scrollbar_button_hover_color=ACCENT)
+        self.device_frame.pack(fill='both', expand=True)
         self.buttons = {}
+        self.device_labels = {}
 
         ttk.Label(self.aba_atalhos, text="Seus atalhos", font=("Segoe UI", 15, "bold")).pack(anchor="w", pady=(18, 4))
         ttk.Label(self.aba_atalhos, text="Selecione uma saída e grave uma combinação.", style="Subtitle.TLabel").pack(anchor="w", pady=(0, 8))
@@ -97,29 +98,38 @@ class MainWindow:
         self.lista_atalhos.configure(yscrollcommand=scroll_atalhos.set)
 
 
-    def _resize_devices(self, event):
-        self.device_canvas.itemconfigure(self.device_frame_id, width=event.width)
-        for button in self.buttons.values():
-            button.configure(wraplength=max(200, event.width - 60))
+    def _select_page(self, page):
+        self.aba_audio.pack_forget()
+        self.aba_atalhos.pack_forget()
+        target = self.aba_audio if page == 'Dispositivos' else self.aba_atalhos
+        target.pack(fill='both', expand=True)
+        self.navigation.set(page)
 
     def set_devices(self, rows, labels):
         for child in self.device_frame.winfo_children():
             child.destroy()
         self.buttons.clear()
+        self.device_labels.clear()
         if not rows:
-            tk.Label(self.device_frame, text="Nenhum dispositivo de saída encontrado.\nConecte um dispositivo e atualize a lista.", bg=BACKGROUND, fg=MUTED, font=("Segoe UI", 11)).pack(pady=40)
+            ctk.CTkLabel(self.device_frame, text='Nenhum dispositivo de saída encontrado.\nConecte um dispositivo e atualize a lista.',
+                         text_color=MUTED, justify='left').pack(anchor='w', padx=16, pady=28)
         for device_id, text in rows:
             card = ctk.CTkFrame(self.device_frame, fg_color=SURFACE, corner_radius=12,
                                 border_color=ELEVATED, border_width=1)
             card.pack(pady=5, fill='x')
-            tk.Label(card, text='SAÍDA DISPONÍVEL', bg=SURFACE, fg=ACCENT, font=('Segoe UI', 8, 'bold'), anchor='w').pack(fill='x', padx=16, pady=(11, 0))
-            button = tk.Button(card, text=text + '\nSelecionar saída  →', anchor='w', justify='left', wraplength=560, bg=SURFACE, fg=TEXT,
-                               activebackground=ELEVATED, activeforeground=TEXT, relief='flat',
-                               bd=0, padx=14, pady=10, font=('Segoe UI', 10), cursor='hand2',
-                               highlightthickness=1, highlightbackground=SURFACE, highlightcolor=ACCENT,
-                               command=lambda value=device_id: self.actions.trocar_dispositivo(value))
-            button.pack(fill='x')
+            content = ctk.CTkFrame(card, fg_color='transparent')
+            content.pack(fill='x', padx=16, pady=12)
+            button = ctk.CTkButton(content, text='Selecionar saída', width=126, height=36,
+                fg_color=ELEVATED, hover_color='#304963', text_color=TEXT, corner_radius=9,
+                command=lambda value=device_id: self.actions.trocar_dispositivo(value))
+            button.pack(side='right', padx=(12, 0))
+            label = ctk.CTkLabel(content, text=text, text_color=TEXT, anchor='w', justify='left',
+                                 font=ctk.CTkFont(family='Segoe UI', size=13, weight='bold'), wraplength=430)
+            label.pack(fill='x', anchor='w')
+            ctk.CTkLabel(content, text='Disponível', text_color=ACCENT, anchor='w',
+                         font=ctk.CTkFont(family='Segoe UI', size=11)).pack(fill='x', anchor='w')
             self.buttons[device_id] = button
+            self.device_labels[device_id] = label
         self.dropdown.config(values=['Selecione...'] + list(labels))
         if self.dispositivo_var.get() not in labels:
             self.dispositivo_var.set('Selecione...')
