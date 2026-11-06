@@ -18,6 +18,8 @@ class MainWindow:
         self.tecla_var = tk.StringVar()
         self.dispositivo_var = tk.StringVar(value="Selecione...")
 
+        ttk.Label(self.root, textvariable=self.status_var, anchor="w").pack(side="bottom", fill="x", padx=24, pady=6)
+
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(expand=True, fill="both", padx=24, pady=(8, 0))
 
@@ -60,20 +62,25 @@ class MainWindow:
         self.capture_hint = ttk.Label(self.aba_atalhos, text="Grave uma combinação para associar ao dispositivo.", style="Subtitle.TLabel")
         self.capture_hint.pack(anchor="w", pady=(0, 2))
 
-        self.btn_gravar = ttk.Button(self.aba_atalhos, text="Gravar atalho", command=self.actions.gravar_tecla)
-        self.btn_gravar.pack(pady=8)
+        capture_actions = ttk.Frame(self.aba_atalhos)
+        capture_actions.pack(anchor="w", pady=(4, 2))
+        self.btn_gravar = ttk.Button(capture_actions, text="Gravar atalho", command=self.actions.gravar_tecla)
+        self.btn_gravar.pack(side="left", padx=(0, 8))
+        ttk.Button(capture_actions, text="Registrar atalho", command=self.actions.registrar_atalho).pack(side="left")
 
-        ttk.Button(self.aba_atalhos, text="Registrar atalho", command=self.actions.registrar_atalho).pack(pady=8)
-
-        ttk.Label(self.aba_atalhos, text="Atalhos registrados").pack(pady=(18, 5))
+        ttk.Label(self.aba_atalhos, text="Atalhos registrados").pack(anchor="w", pady=(10, 5))
+        acoes_frame = ttk.Frame(self.aba_atalhos)
+        acoes_frame.pack(side="bottom", anchor="w", pady=(4, 8))
+        ttk.Button(acoes_frame, text="Editar selecionado", command=self.actions.editar_atalho).pack(side="left", padx=(0, 8))
+        ttk.Button(acoes_frame, text="Remover selecionado", command=self.actions.remover_atalho).pack(side="left")
         lista_frame = ttk.Frame(self.aba_atalhos)
-        lista_frame.pack(padx=12, pady=5, fill="both", expand=True)
+        lista_frame.pack(pady=5, fill="both", expand=True)
 
         self.lista_atalhos = ttk.Treeview(
             lista_frame,
             columns=("dispositivo", "atalho"),
             show="headings",
-            height=6,
+            height=3,
             selectmode="browse",
         )
         self.lista_atalhos.heading("dispositivo", text="Dispositivo")
@@ -87,12 +94,6 @@ class MainWindow:
         scroll_atalhos.pack(side="right", fill="y")
         self.lista_atalhos.configure(yscrollcommand=scroll_atalhos.set)
 
-        acoes_frame = ttk.Frame(self.aba_atalhos)
-        acoes_frame.pack(pady=(4, 12))
-        ttk.Button(acoes_frame, text="Editar selecionado", command=self.actions.editar_atalho).pack(side="left", padx=5)
-        ttk.Button(acoes_frame, text="Remover selecionado", command=self.actions.remover_atalho).pack(side="left", padx=5)
-
-        ttk.Label(self.root, textvariable=self.status_var, anchor="w").pack(side="bottom", fill="x", padx=8, pady=6)
 
     def set_devices(self, rows, labels):
         for child in self.device_frame.winfo_children():
