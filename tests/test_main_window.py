@@ -26,7 +26,9 @@ class MainWindowTests(unittest.TestCase):
         window.buttons['id'].invoke()
         actions.trocar_dispositivo.assert_called_once_with('id')
         window.set_hotkeys([('id:id', 'Headset', 'ctrl+1')])
-        window.lista_atalhos.selection_set('id:id')
+        window.shortcut_rows['id:id'][2].invoke()
+        actions.editar_atalho.assert_called_once_with()
+        actions.editar_atalho.reset_mock()
         self.assertEqual(window.selected_shortcut(), 'id:id')
         window.set_selection('Headset', 'ctrl+1')
         self.assertEqual(window.selected_device(), 'Headset')
@@ -34,22 +36,16 @@ class MainWindowTests(unittest.TestCase):
         window.set_status('Pronto para teste')
         self.assertEqual(window.status_var.get(), 'Pronto para teste')
 
-        def descendants(widget):
-            for child in widget.winfo_children():
-                yield child
-                yield from descendants(child)
-
-        buttons = {child.cget('text'): child for child in descendants(root)
-                   if child.winfo_class() in ('TButton', 'Button')}
         window.refresh_button.invoke()
         actions.atualizar_lista.assert_called_once_with()
-        for label, method in [
-                              ('Gravar atalho', 'gravar_tecla'),
-                              ('Registrar atalho', 'registrar_atalho'),
-                              ('Editar selecionado', 'editar_atalho'),
-                              ('Remover selecionado', 'remover_atalho')]:
-            buttons[label].invoke()
-            getattr(actions, method).assert_called_once_with()
+        window.btn_gravar.invoke()
+        actions.gravar_tecla.assert_called_once_with()
+        window.btn_registrar.invoke()
+        actions.registrar_atalho.assert_called_once_with()
+        window.shortcut_rows['id:id'][2].invoke()
+        actions.editar_atalho.assert_called_once_with()
+        window.shortcut_rows['id:id'][3].invoke()
+        actions.remover_atalho.assert_called_once_with()
         self.assertEqual(tuple(window.dropdown.cget('values')), ('Selecione...', 'Headset'))
 
     def test_refresh_replaces_devices_shortcuts_and_recording_state(self):
@@ -67,9 +63,9 @@ class MainWindowTests(unittest.TestCase):
         self.assertEqual(set(window.buttons), {'b'})
         self.assertEqual(window.selected_device(), 'Selecione...')
         window.set_hotkeys([('id:a', 'Indisponivel', 'ctrl+1')])
-        self.assertEqual(window.lista_atalhos.item('id:a', 'values'), ('Indisponivel', 'ctrl+1'))
+        self.assertEqual(window.shortcut_rows['id:a'][:2], ('Indisponivel', 'ctrl+1'))
         window.set_hotkeys([('legacy:1', 'Pendente', 'ctrl+2')])
-        self.assertEqual(window.lista_atalhos.get_children(), ('legacy:1',))
+        self.assertEqual(tuple(window.shortcut_rows), ('legacy:1',))
         window.set_recording_state(True, 'Gravando...')
         self.assertEqual(str(window.btn_gravar.cget('state')), 'disabled')
         self.assertIn('aguardando', window.capture_hint.cget('text').lower())

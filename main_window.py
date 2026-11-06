@@ -30,7 +30,7 @@ class MainWindow:
         self.page_container = tk.Frame(root, bg=BACKGROUND)
         self.page_container.pack(expand=True, fill='both', padx=24, pady=(0, 4))
         self.aba_audio = ctk.CTkFrame(self.page_container, fg_color='transparent')
-        self.aba_atalhos = ttk.Frame(self.page_container)
+        self.aba_atalhos = ctk.CTkFrame(self.page_container, fg_color='transparent')
         self.aba_audio.pack(fill='both', expand=True)
         device_header = ctk.CTkFrame(self.aba_audio, fg_color='transparent')
         device_header.pack(fill='x', pady=(8, 10))
@@ -46,56 +46,35 @@ class MainWindow:
         self.buttons = {}
         self.device_labels = {}
 
-        ttk.Label(self.aba_atalhos, text="Seus atalhos", font=("Segoe UI", 15, "bold")).pack(anchor="w", pady=(18, 4))
-        ttk.Label(self.aba_atalhos, text="Selecione uma saída e grave uma combinação.", style="Subtitle.TLabel").pack(anchor="w", pady=(0, 8))
-        ttk.Label(self.aba_atalhos, text="Dispositivo").pack(anchor="w", pady=(4, 5))
-        self.dropdown = ttk.Combobox(
-            self.aba_atalhos,
-            textvariable=self.dispositivo_var,
-            values=["Selecione..."] + list(self.actions.device_labels()),
-            state="readonly",
-            width=58,
-        )
-        self.dropdown.pack(pady=5, fill="x")
-
-        ttk.Label(self.aba_atalhos, text="Atalho").pack(anchor="w", pady=(10, 5))
-        entrada_tecla = ttk.Entry(self.aba_atalhos, textvariable=self.tecla_var, width=34, state="readonly")
-        entrada_tecla.pack(pady=5, fill="x")
-
-        self.capture_hint = ttk.Label(self.aba_atalhos, text="Grave uma combinação para associar ao dispositivo.", style="Subtitle.TLabel")
-        self.capture_hint.pack(anchor="w", pady=(0, 2))
-
-        capture_actions = ttk.Frame(self.aba_atalhos)
-        capture_actions.pack(anchor="w", pady=(4, 2))
-        self.btn_gravar = ttk.Button(capture_actions, text="Gravar atalho", command=self.actions.gravar_tecla)
-        self.btn_gravar.pack(side="left", padx=(0, 8))
-        ttk.Button(capture_actions, text="Registrar atalho", command=self.actions.registrar_atalho).pack(side="left")
-
-        ttk.Label(self.aba_atalhos, text="Atalhos registrados").pack(anchor="w", pady=(10, 5))
-        acoes_frame = ttk.Frame(self.aba_atalhos)
-        acoes_frame.pack(side="bottom", anchor="w", pady=(4, 8))
-        ttk.Button(acoes_frame, text="Editar selecionado", command=self.actions.editar_atalho).pack(side="left", padx=(0, 8))
-        ttk.Button(acoes_frame, text="Remover selecionado", command=self.actions.remover_atalho).pack(side="left")
-        lista_frame = ttk.Frame(self.aba_atalhos)
-        lista_frame.pack(pady=5, fill="both", expand=True)
-
-        self.lista_atalhos = ttk.Treeview(
-            lista_frame,
-            columns=("dispositivo", "atalho"),
-            show="headings",
-            height=3,
-            selectmode="browse",
-        )
-        self.lista_atalhos.heading("dispositivo", text="Dispositivo")
-        self.lista_atalhos.heading("atalho", text="Atalho")
-        self.lista_atalhos.column("dispositivo", width=360, anchor="w")
-        self.lista_atalhos.column("atalho", width=120, anchor="center")
-        self.lista_atalhos.pack(side="left", fill="both", expand=True)
-        self.lista_atalhos.bind("<Double-1>", lambda event: self.actions.editar_atalho())
-
-        scroll_atalhos = ttk.Scrollbar(lista_frame, orient="vertical", command=self.lista_atalhos.yview)
-        scroll_atalhos.pack(side="right", fill="y")
-        self.lista_atalhos.configure(yscrollcommand=scroll_atalhos.set)
+        form = ctk.CTkFrame(self.aba_atalhos, fg_color=SURFACE, corner_radius=12)
+        form.pack(fill='x', pady=(8, 10))
+        ctk.CTkLabel(form, text='Configurar atalho', text_color=TEXT,
+                     font=ctk.CTkFont(family='Segoe UI', size=17, weight='bold')).pack(anchor='w', padx=16, pady=(12, 4))
+        ctk.CTkLabel(form, text='Dispositivo', text_color=MUTED).pack(anchor='w', padx=16)
+        self.dropdown = ctk.CTkComboBox(form, variable=self.dispositivo_var,
+            values=['Selecione...'] + list(self.actions.device_labels()), state='readonly',
+            fg_color=ELEVATED, border_color=ELEVATED, text_color=TEXT, button_color=ELEVATED,
+            dropdown_fg_color=SURFACE, dropdown_text_color=TEXT)
+        self.dropdown.pack(fill='x', padx=16, pady=(0, 4))
+        ctk.CTkLabel(form, text='Combinação', text_color=MUTED).pack(anchor='w', padx=16)
+        self.entrada_tecla = ctk.CTkEntry(form, textvariable=self.tecla_var, state='readonly',
+            fg_color=ELEVATED, border_color=ELEVATED, text_color=TEXT)
+        self.entrada_tecla.pack(fill='x', padx=16)
+        self.capture_hint = ctk.CTkLabel(form, text='Grave uma combinação para associar ao dispositivo.', text_color=MUTED, anchor='w')
+        self.capture_hint.pack(fill='x', padx=16)
+        capture_actions = ctk.CTkFrame(form, fg_color='transparent')
+        capture_actions.pack(anchor='w', padx=16, pady=(4, 12))
+        self.btn_gravar = ctk.CTkButton(capture_actions, text='Gravar atalho', command=self.actions.gravar_tecla, fg_color=ELEVATED, hover_color='#304963', width=130)
+        self.btn_gravar.pack(side='left', padx=(0, 8))
+        self.btn_registrar = ctk.CTkButton(capture_actions, text='Registrar atalho', command=self.actions.registrar_atalho, fg_color=ELEVATED, hover_color='#304963', width=140)
+        self.btn_registrar.pack(side='left')
+        ctk.CTkLabel(self.aba_atalhos, text='Atalhos registrados', text_color=TEXT,
+                     font=ctk.CTkFont(family='Segoe UI', size=16, weight='bold')).pack(anchor='w', pady=(2, 4))
+        self.shortcut_list = ctk.CTkScrollableFrame(self.aba_atalhos, fg_color='transparent',
+            scrollbar_button_color=ELEVATED, scrollbar_button_hover_color=ACCENT)
+        self.shortcut_list.pack(fill='both', expand=True)
+        self.shortcut_rows = {}
+        self.shortcut_selected = None
 
 
     def _select_page(self, page):
@@ -130,15 +109,35 @@ class MainWindow:
                          font=ctk.CTkFont(family='Segoe UI', size=11)).pack(fill='x', anchor='w')
             self.buttons[device_id] = button
             self.device_labels[device_id] = label
-        self.dropdown.config(values=['Selecione...'] + list(labels))
+        self.dropdown.configure(values=['Selecione...'] + list(labels))
         if self.dispositivo_var.get() not in labels:
             self.dispositivo_var.set('Selecione...')
 
+    def _shortcut_action(self, item_id, callback):
+        self.shortcut_selected = item_id
+        callback()
+
     def set_hotkeys(self, rows):
-        for item in self.lista_atalhos.get_children():
-            self.lista_atalhos.delete(item)
+        for child in self.shortcut_list.winfo_children():
+            child.destroy()
+        self.shortcut_rows = {}
+        self.shortcut_selected = None
+        if not rows:
+            ctk.CTkLabel(self.shortcut_list, text='Nenhum atalho cadastrado.', text_color=MUTED).pack(anchor='w', padx=12, pady=12)
         for item_id, name, hotkey in rows:
-            self.lista_atalhos.insert('', 'end', iid=item_id, values=(name, hotkey))
+            card = ctk.CTkFrame(self.shortcut_list, fg_color=SURFACE, corner_radius=10)
+            card.pack(fill='x', pady=4)
+            buttons = ctk.CTkFrame(card, fg_color='transparent')
+            buttons.pack(side='right', padx=10, pady=8)
+            edit = ctk.CTkButton(buttons, text='Editar', width=66, fg_color=ELEVATED,
+                command=lambda key=item_id: self._shortcut_action(key, self.actions.editar_atalho))
+            edit.pack(side='left', padx=3)
+            remove = ctk.CTkButton(buttons, text='Remover', width=72, fg_color=ELEVATED,
+                command=lambda key=item_id: self._shortcut_action(key, self.actions.remover_atalho))
+            remove.pack(side='left', padx=3)
+            text = ctk.CTkLabel(card, text=f'{name}\n{hotkey}', text_color=TEXT, anchor='w', justify='left', wraplength=400)
+            text.pack(fill='x', padx=14, pady=8)
+            self.shortcut_rows[item_id] = (name, hotkey, edit, remove)
 
     def set_status(self, value):
         self.status_var.set(value)
@@ -146,12 +145,12 @@ class MainWindow:
     def set_recording_state(self, recording, value=None):
         if value is not None:
             self.tecla_var.set(value)
-        self.btn_gravar.config(state='disabled' if recording else 'normal')
-        self.capture_hint.config(text='Aguardando combinação de teclas…' if recording else 'Grave uma combinação para associar ao dispositivo.')
+        self.btn_gravar.configure(state='disabled' if recording else 'normal')
+        self.btn_registrar.configure(state='disabled' if recording else 'normal')
+        self.capture_hint.configure(text='Aguardando combinação de teclas…' if recording else 'Grave uma combinação para associar ao dispositivo.')
 
     def selected_shortcut(self):
-        items = self.lista_atalhos.selection()
-        return items[0] if items else None
+        return self.shortcut_selected
 
     def selected_device(self):
         return self.dispositivo_var.get()
