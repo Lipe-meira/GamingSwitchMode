@@ -98,6 +98,7 @@ class ApplicationController:
 
 
     def trocar_dispositivo(self, device_id):
+        self.window.set_status('Alterando dispositivo de áudio…')
         device_name_snapshot = self.device_name(device_id)
         service = AudioService(audio, self.events)
         self.audio_jobs.put(lambda: service.activate(device_id, device_name_snapshot))

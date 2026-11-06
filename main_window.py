@@ -57,6 +57,9 @@ class MainWindow:
         entrada_tecla = ttk.Entry(self.aba_atalhos, textvariable=self.tecla_var, width=34, state="readonly")
         entrada_tecla.pack(pady=5, fill="x")
 
+        self.capture_hint = ttk.Label(self.aba_atalhos, text="Grave uma combinação para associar ao dispositivo.", style="Subtitle.TLabel")
+        self.capture_hint.pack(anchor="w", pady=(0, 2))
+
         self.btn_gravar = ttk.Button(self.aba_atalhos, text="Gravar atalho", command=self.actions.gravar_tecla)
         self.btn_gravar.pack(pady=8)
 
@@ -125,6 +128,7 @@ class MainWindow:
         if value is not None:
             self.tecla_var.set(value)
         self.btn_gravar.config(state='disabled' if recording else 'normal')
+        self.capture_hint.config(text='Aguardando combinação de teclas…' if recording else 'Grave uma combinação para associar ao dispositivo.')
 
     def selected_shortcut(self):
         items = self.lista_atalhos.selection()

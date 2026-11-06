@@ -70,5 +70,20 @@ class MainWindowTests(unittest.TestCase):
         self.assertEqual(window.lista_atalhos.get_children(), ('legacy:1',))
         window.set_recording_state(True, 'Gravando...')
         self.assertEqual(str(window.btn_gravar.cget('state')), 'disabled')
+        self.assertIn('aguardando', window.capture_hint.cget('text').lower())
         window.set_recording_state(False, 'ctrl+2')
         self.assertEqual(window.hotkey_value(), 'ctrl+2')
+
+    def test_navigation_selects_both_sections(self):
+        root = tk.Tk()
+        root.withdraw()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        window.notebook.select(window.aba_atalhos)
+        self.assertEqual(window.notebook.select(), str(window.aba_atalhos))
+        window.notebook.select(window.aba_audio)
+        self.assertEqual(window.notebook.select(), str(window.aba_audio))
