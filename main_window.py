@@ -1,30 +1,49 @@
 """Tk window construction; actions are supplied by the application."""
 import tkinter as tk
 from tkinter import ttk
+from ui_theme import apply_theme, BACKGROUND, SURFACE, ELEVATED, ACCENT, TEXT, MUTED
 
 
 class MainWindow:
     def __init__(self, root, actions):
         self.root = root
         self.actions = actions
+        apply_theme(root)
+        root.geometry('900x700')
+        header = ttk.Frame(root, padding=(24, 20, 24, 8))
+        header.pack(fill='x')
+        ttk.Label(header, text='GamingSwitchMode', style='Title.TLabel').pack(anchor='w')
+        ttk.Label(header, text='Seu áudio, no dispositivo certo.', style='Subtitle.TLabel').pack(anchor='w', pady=(3, 0))
         self.status_var = tk.StringVar(value="Pronto.")
         self.tecla_var = tk.StringVar()
         self.dispositivo_var = tk.StringVar(value="Selecione...")
 
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(expand=True, fill="both")
+        self.notebook.pack(expand=True, fill="both", padx=24, pady=(8, 0))
 
         self.aba_audio = ttk.Frame(self.notebook)
         self.aba_atalhos = ttk.Frame(self.notebook)
-        self.notebook.add(self.aba_audio, text="Audio")
+        self.notebook.add(self.aba_audio, text="Dispositivos")
         self.notebook.add(self.aba_atalhos, text="Atalhos")
 
-        self.device_frame = tk.Frame(self.aba_audio)
-        self.device_frame.pack(fill="x")
+        device_header = ttk.Frame(self.aba_audio, padding=(0, 18, 0, 10))
+        device_header.pack(fill='x')
+        ttk.Label(device_header, text='Saídas de áudio', font=('Segoe UI', 15, 'bold')).pack(side='left')
+        ttk.Button(device_header, text='Atualizar lista', command=self.actions.atualizar_lista).pack(side='right')
+        self.device_canvas = tk.Canvas(self.aba_audio, bg=BACKGROUND, highlightthickness=0, borderwidth=0)
+        self.device_scroll = ttk.Scrollbar(self.aba_audio, orient='vertical', command=self.device_canvas.yview)
+        self.device_canvas.configure(yscrollcommand=self.device_scroll.set)
+        self.device_scroll.pack(side='right', fill='y')
+        self.device_canvas.pack(side='left', fill='both', expand=True)
+        self.device_frame = tk.Frame(self.device_canvas, bg=BACKGROUND)
+        self.device_frame_id = self.device_canvas.create_window((0, 0), window=self.device_frame, anchor='nw')
+        self.device_frame.bind('<Configure>', lambda event: self.device_canvas.configure(scrollregion=self.device_canvas.bbox('all')))
+        self.device_canvas.bind('<Configure>', lambda event: self.device_canvas.itemconfigure(self.device_frame_id, width=event.width))
         self.buttons = {}
-        tk.Button(self.aba_audio, text="Atualizar lista", command=self.actions.atualizar_lista).pack(pady=12)
 
-        ttk.Label(self.aba_atalhos, text="Dispositivo").pack(pady=(20, 5))
+        ttk.Label(self.aba_atalhos, text="Seus atalhos", font=("Segoe UI", 15, "bold")).pack(anchor="w", pady=(18, 4))
+        ttk.Label(self.aba_atalhos, text="Selecione uma saída e grave uma combinação.", style="Subtitle.TLabel").pack(anchor="w", pady=(0, 8))
+        ttk.Label(self.aba_atalhos, text="Dispositivo").pack(anchor="w", pady=(4, 5))
         self.dropdown = ttk.Combobox(
             self.aba_atalhos,
             textvariable=self.dispositivo_var,
@@ -32,11 +51,11 @@ class MainWindow:
             state="readonly",
             width=58,
         )
-        self.dropdown.pack(pady=5)
+        self.dropdown.pack(pady=5, fill="x")
 
-        ttk.Label(self.aba_atalhos, text="Atalho").pack(pady=(16, 5))
+        ttk.Label(self.aba_atalhos, text="Atalho").pack(anchor="w", pady=(10, 5))
         entrada_tecla = ttk.Entry(self.aba_atalhos, textvariable=self.tecla_var, width=34, state="readonly")
-        entrada_tecla.pack(pady=5)
+        entrada_tecla.pack(pady=5, fill="x")
 
         self.btn_gravar = ttk.Button(self.aba_atalhos, text="Gravar atalho", command=self.actions.gravar_tecla)
         self.btn_gravar.pack(pady=8)
@@ -77,11 +96,17 @@ class MainWindow:
             child.destroy()
         self.buttons.clear()
         if not rows:
-            tk.Label(self.device_frame, text="Nenhum dispositivo de saida encontrado.").pack(pady=20)
+            tk.Label(self.device_frame, text="Nenhum dispositivo de saída encontrado.\nConecte um dispositivo e atualize a lista.", bg=BACKGROUND, fg=MUTED, font=("Segoe UI", 11)).pack(pady=40)
         for device_id, text in rows:
-            button = tk.Button(self.device_frame, text=text, width=56, anchor="w",
+            card = tk.Frame(self.device_frame, bg=SURFACE, highlightbackground=ELEVATED, highlightthickness=1)
+            card.pack(pady=5, fill='x')
+            tk.Label(card, text='SAÍDA DISPONÍVEL', bg=SURFACE, fg=ACCENT, font=('Segoe UI', 8, 'bold'), anchor='w').pack(fill='x', padx=16, pady=(11, 0))
+            button = tk.Button(card, text=text + '   →', anchor='w', bg=SURFACE, fg=TEXT,
+                               activebackground=ELEVATED, activeforeground=TEXT, relief='flat',
+                               bd=0, padx=14, pady=10, font=('Segoe UI', 10), cursor='hand2',
+                               highlightthickness=1, highlightbackground=SURFACE, highlightcolor=ACCENT,
                                command=lambda value=device_id: self.actions.trocar_dispositivo(value))
-            button.pack(padx=12, pady=5, fill="x")
+            button.pack(fill='x')
             self.buttons[device_id] = button
         self.dropdown.config(values=['Selecione...'] + list(labels))
         if self.dispositivo_var.get() not in labels:
