@@ -1,6 +1,7 @@
 """Tk window construction; actions are supplied by the application."""
 import tkinter as tk
 import re
+from pathlib import Path
 from tkinter import ttk
 import customtkinter as ctk
 from ui_theme import (apply_theme, BACKGROUND, SURFACE, ELEVATED, ACCENT, TEXT, MUTED,
@@ -37,6 +38,7 @@ def device_name_parts(name):
 class MainWindow:
     def __init__(self, root, actions):
         self.root = root
+        root.iconbitmap(str(Path(__file__).resolve().parent / 'assets' / 'app.ico'))
         self.actions = actions
         apply_theme(root)
         root.geometry('900x700')
