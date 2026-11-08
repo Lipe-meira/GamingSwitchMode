@@ -22,7 +22,7 @@ class MainWindowTests(unittest.TestCase):
             'gravar_tecla', 'registrar_atalho', 'editar_atalho', 'remover_atalho')})
         actions.device_labels.return_value = {'Headset': 'id'}
         window = main_window.MainWindow(root, actions)
-        window.set_devices([('id', 'Headset')], {'Headset': 'id'})
+        window.set_devices([('id', 'Headset', 'id', None)], {'Headset': 'id'})
         window.buttons['id'].invoke()
         actions.trocar_dispositivo.assert_called_once_with('id')
         window.set_hotkeys([('id:id', 'Headset', 'ctrl+1')])
@@ -57,9 +57,9 @@ class MainWindowTests(unittest.TestCase):
             'registrar_atalho', 'editar_atalho', 'remover_atalho')})
         actions.device_labels.return_value = {}
         window = main_window.MainWindow(root, actions)
-        window.set_devices([('a', 'Headset')], {'Headset': 'a'})
+        window.set_devices([('a', 'Headset', 'a', None)], {'Headset': 'a'})
         window.set_selection('Headset', 'ctrl+1')
-        window.set_devices([('b', 'Caixa')], {'Caixa': 'b'})
+        window.set_devices([('b', 'Caixa', 'b', None)], {'Caixa': 'b'})
         self.assertEqual(set(window.buttons), {'b'})
         self.assertEqual(window.selected_device(), 'Selecione...')
         window.set_hotkeys([('id:a', 'Indisponivel', 'ctrl+1')])
@@ -115,11 +115,34 @@ class MainWindowTests(unittest.TestCase):
             'registrar_atalho', 'editar_atalho', 'remover_atalho')})
         actions.device_labels.return_value = {}
         window = main_window.MainWindow(root, actions)
-        window.set_devices([('a', 'Saída longa ' * 15)], {})
+        window.set_devices([('a', 'Saída longa ' * 15, 'a', None)], {})
         self.assertIn('Selecionar saída', window.buttons['a'].cget('text'))
         self.assertGreater(window.device_labels['a'].cget('wraplength'), 0)
         window.buttons['a'].invoke()
         actions.trocar_dispositivo.assert_called_once_with('a')
+
+    def test_device_cards_show_friendly_names_descriptions_and_distinct_ids(self):
+        root = tk.Tk()
+        root.withdraw()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        window.set_devices([('id-a', 'Alto-falantes (USB Audio Device)', 'id-a', 'ctrl+1'),
+                            ('id-b', 'Alto-falantes (USB Audio Device)', 'id-b', None)], {})
+        self.assertEqual(window.device_labels['id-a'].cget('text'), 'Alto-falantes')
+        self.assertEqual(window.device_labels['id-b'].cget('text'), 'Alto-falantes')
+        for device_id in ('id-a', 'id-b'):
+            details = window.device_labels[device_id].master
+            texts = [child.cget('text') for child in details.winfo_children()]
+            self.assertIn('USB Audio Device', texts)
+            self.assertTrue(any(f'ID: {device_id}' in text for text in texts))
+        window.buttons['id-b'].invoke()
+        actions.trocar_dispositivo.assert_called_once_with('id-b')
+        self.assertEqual(main_window.device_name_parts('Nome sem descrição'), ('Nome sem descrição', ''))
+        self.assertEqual(main_window.device_name_parts('Nome (sem fechamento'), ('Nome (sem fechamento', ''))
 
     def test_keyboard_activation_targets_one_shortcut(self):
         root = tk.Tk()

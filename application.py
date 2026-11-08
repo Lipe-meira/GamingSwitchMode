@@ -220,10 +220,8 @@ class ApplicationController:
     def refresh_views(self):
         rows = []
         for device_id in self.dispositivos:
-            text = f'[{self.device_tag(device_id)}] {self.device_name(device_id)}'
-            if device_id in self.bindings():
-                text += f"    [{self.bindings()[device_id]['hotkey']}]"
-            rows.append((device_id, text))
+            hotkey = self.bindings().get(device_id, {}).get('hotkey')
+            rows.append((device_id, self.device_name(device_id), self.device_tag(device_id), hotkey))
         self.window.set_devices(rows, self.device_labels())
         self.atualizar_lista_atalhos()
 

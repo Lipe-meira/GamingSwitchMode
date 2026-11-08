@@ -1,5 +1,6 @@
 """Tk window construction; actions are supplied by the application."""
 import tkinter as tk
+import re
 from tkinter import ttk
 import customtkinter as ctk
 from ui_theme import (apply_theme, BACKGROUND, SURFACE, ELEVATED, ACCENT, TEXT, MUTED,
@@ -23,6 +24,14 @@ def keyboard_button(button):
     button.bind('<Return>', activate)
     button.bind('<space>', activate)
     return button
+
+
+def device_name_parts(name):
+    """Separate a final parenthesized device description when one is present."""
+    match = re.fullmatch(r'(.+?)\s+\(([^()]*)\)', name.strip())
+    if match and match.group(2).strip():
+        return match.group(1).strip(), match.group(2).strip()
+    return name.strip(), ''
 
 
 class MainWindow:
@@ -117,7 +126,7 @@ class MainWindow:
         if not rows:
             ctk.CTkLabel(self.device_frame, text='Nenhum dispositivo de saída encontrado.\nConecte um dispositivo e atualize a lista.',
                          text_color=MUTED, justify='left').pack(anchor='w', padx=16, pady=28)
-        for device_id, text in rows:
+        for device_id, name, tag, hotkey in rows:
             card = ctk.CTkFrame(self.device_frame, fg_color=SURFACE, corner_radius=12,
                                 border_color=ELEVATED, border_width=1)
             card.pack(pady=5, fill='x')
@@ -128,11 +137,23 @@ class MainWindow:
                 command=lambda value=device_id: self.actions.trocar_dispositivo(value))
             button.pack(side='right', padx=(12, 0))
             keyboard_button(button)
-            label = ctk.CTkLabel(content, text=text, text_color=TEXT, anchor='w', justify='left',
-                                 font=ctk.CTkFont(family='Segoe UI', size=13, weight='bold'), wraplength=430)
+            icon = tk.Canvas(content, width=24, height=24, bg=SURFACE, highlightthickness=0)
+            icon.pack(side='left', anchor='n', padx=(0, 12), pady=(3, 0))
+            icon.create_polygon(3, 9, 7, 9, 12, 5, 12, 19, 7, 15, 3, 15,
+                                fill=ACCENT, outline=ACCENT)
+            icon.create_arc(8, 4, 21, 20, start=-55, extent=110, style='arc', outline=ACCENT, width=2)
+            details = ctk.CTkFrame(content, fg_color='transparent')
+            details.pack(fill='x', expand=True)
+            title, description = device_name_parts(name)
+            label = ctk.CTkLabel(details, text=title, text_color=TEXT, anchor='w', justify='left',
+                                 font=ctk.CTkFont(family='Segoe UI', size=13, weight='bold'), wraplength=390)
             label.pack(fill='x', anchor='w')
-            ctk.CTkLabel(content, text='Disponível', text_color=ACCENT, anchor='w',
-                         font=ctk.CTkFont(family='Segoe UI', size=11)).pack(fill='x', anchor='w')
+            if description:
+                ctk.CTkLabel(details, text=description, text_color=MUTED, anchor='w', justify='left',
+                             font=ctk.CTkFont(family='Segoe UI', size=11), wraplength=390).pack(fill='x', anchor='w')
+            info = f'Disponível  ·  ID: {tag}' + (f'  ·  {hotkey}' if hotkey else '')
+            ctk.CTkLabel(details, text=info, text_color=ACCENT, anchor='w', justify='left',
+                         font=ctk.CTkFont(family='Segoe UI', size=11), wraplength=390).pack(fill='x', anchor='w')
             self.buttons[device_id] = button
             self.device_labels[device_id] = label
         self.dropdown.configure(values=['Selecione...'] + list(labels))
