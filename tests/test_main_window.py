@@ -22,11 +22,13 @@ class MainWindowTests(unittest.TestCase):
             'gravar_tecla', 'registrar_atalho', 'editar_atalho', 'remover_atalho')})
         actions.device_labels.return_value = {'Headset': 'id'}
         window = main_window.MainWindow(root, actions)
-        window.set_devices([('id', 'Headset')], {'Headset': 'id'})
+        window.set_devices([('id', 'Headset', 'id', None)], {'Headset': 'id'})
         window.buttons['id'].invoke()
         actions.trocar_dispositivo.assert_called_once_with('id')
         window.set_hotkeys([('id:id', 'Headset', 'ctrl+1')])
-        window.lista_atalhos.selection_set('id:id')
+        window.shortcut_rows['id:id'][2].invoke()
+        actions.editar_atalho.assert_called_once_with()
+        actions.editar_atalho.reset_mock()
         self.assertEqual(window.selected_shortcut(), 'id:id')
         window.set_selection('Headset', 'ctrl+1')
         self.assertEqual(window.selected_device(), 'Headset')
@@ -34,20 +36,16 @@ class MainWindowTests(unittest.TestCase):
         window.set_status('Pronto para teste')
         self.assertEqual(window.status_var.get(), 'Pronto para teste')
 
-        def descendants(widget):
-            for child in widget.winfo_children():
-                yield child
-                yield from descendants(child)
-
-        buttons = {child.cget('text'): child for child in descendants(root)
-                   if child.winfo_class() in ('TButton', 'Button')}
-        for label, method in [('Atualizar lista', 'atualizar_lista'),
-                              ('Gravar atalho', 'gravar_tecla'),
-                              ('Registrar atalho', 'registrar_atalho'),
-                              ('Editar selecionado', 'editar_atalho'),
-                              ('Remover selecionado', 'remover_atalho')]:
-            buttons[label].invoke()
-            getattr(actions, method).assert_called_once_with()
+        window.refresh_button.invoke()
+        actions.atualizar_lista.assert_called_once_with()
+        window.btn_gravar.invoke()
+        actions.gravar_tecla.assert_called_once_with()
+        window.btn_registrar.invoke()
+        actions.registrar_atalho.assert_called_once_with()
+        window.shortcut_rows['id:id'][2].invoke()
+        actions.editar_atalho.assert_called_once_with()
+        window.shortcut_rows['id:id'][3].invoke()
+        actions.remover_atalho.assert_called_once_with()
         self.assertEqual(tuple(window.dropdown.cget('values')), ('Selecione...', 'Headset'))
 
     def test_refresh_replaces_devices_shortcuts_and_recording_state(self):
@@ -59,16 +57,130 @@ class MainWindowTests(unittest.TestCase):
             'registrar_atalho', 'editar_atalho', 'remover_atalho')})
         actions.device_labels.return_value = {}
         window = main_window.MainWindow(root, actions)
-        window.set_devices([('a', 'Headset')], {'Headset': 'a'})
+        window.set_devices([('a', 'Headset', 'a', None)], {'Headset': 'a'})
         window.set_selection('Headset', 'ctrl+1')
-        window.set_devices([('b', 'Caixa')], {'Caixa': 'b'})
+        window.set_devices([('b', 'Caixa', 'b', None)], {'Caixa': 'b'})
         self.assertEqual(set(window.buttons), {'b'})
         self.assertEqual(window.selected_device(), 'Selecione...')
         window.set_hotkeys([('id:a', 'Indisponivel', 'ctrl+1')])
-        self.assertEqual(window.lista_atalhos.item('id:a', 'values'), ('Indisponivel', 'ctrl+1'))
+        self.assertEqual(window.shortcut_rows['id:a'][:2], ('Indisponivel', 'ctrl+1'))
         window.set_hotkeys([('legacy:1', 'Pendente', 'ctrl+2')])
-        self.assertEqual(window.lista_atalhos.get_children(), ('legacy:1',))
+        self.assertEqual(tuple(window.shortcut_rows), ('legacy:1',))
         window.set_recording_state(True, 'Gravando...')
         self.assertEqual(str(window.btn_gravar.cget('state')), 'disabled')
+        self.assertIn('aguardando', window.capture_hint.cget('text').lower())
         window.set_recording_state(False, 'ctrl+2')
         self.assertEqual(window.hotkey_value(), 'ctrl+2')
+        self.assertEqual(str(window.btn_registrar.cget('state')), 'normal')
+
+    def test_shortcut_card_buttons_target_correct_item(self):
+        root = tk.Tk()
+        root.withdraw()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        window.set_hotkeys([('id:a', 'Disponivel', 'ctrl+1'), ('legacy:2', 'Legado', 'ctrl+2')])
+        window.shortcut_rows['legacy:2'][2].invoke()
+        self.assertEqual(window.selected_shortcut(), 'legacy:2')
+        actions.editar_atalho.assert_called_once_with()
+        window.shortcut_rows['id:a'][3].invoke()
+        self.assertEqual(window.selected_shortcut(), 'id:a')
+        actions.remover_atalho.assert_called_once_with()
+
+    def test_navigation_selects_both_sections(self):
+        root = tk.Tk()
+        root.withdraw()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        window._select_page('Atalhos')
+        self.assertEqual(window.navigation.get(), 'Atalhos')
+        self.assertTrue(window.aba_atalhos.winfo_manager())
+        window._select_page('Dispositivos')
+        self.assertEqual(window.navigation.get(), 'Dispositivos')
+        self.assertTrue(window.aba_audio.winfo_manager())
+
+    def test_device_card_has_explicit_action_and_wraps_long_names(self):
+        root = tk.Tk()
+        root.withdraw()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        window.set_devices([('a', 'Saída longa ' * 15, 'a', None)], {})
+        self.assertIn('Selecionar saída', window.buttons['a'].cget('text'))
+        self.assertGreater(window.device_labels['a'].cget('wraplength'), 0)
+        window.buttons['a'].invoke()
+        actions.trocar_dispositivo.assert_called_once_with('a')
+
+    def test_device_cards_show_friendly_names_descriptions_and_distinct_ids(self):
+        root = tk.Tk()
+        root.withdraw()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        window.set_devices([('id-a', 'Alto-falantes (USB Audio Device)', 'id-a', 'ctrl+1'),
+                            ('id-b', 'Alto-falantes (USB Audio Device)', 'id-b', None)], {})
+        self.assertEqual(window.device_labels['id-a'].cget('text'), 'Alto-falantes')
+        self.assertEqual(window.device_labels['id-b'].cget('text'), 'Alto-falantes')
+        for device_id in ('id-a', 'id-b'):
+            details = window.device_labels[device_id].master
+            texts = [child.cget('text') for child in details.winfo_children()]
+            self.assertIn('USB Audio Device', texts)
+            self.assertTrue(any(f'ID: {device_id}' in text for text in texts))
+        window.buttons['id-b'].invoke()
+        actions.trocar_dispositivo.assert_called_once_with('id-b')
+        self.assertEqual(main_window.device_name_parts('Nome sem descrição'), ('Nome sem descrição', ''))
+        self.assertEqual(main_window.device_name_parts('Nome (sem fechamento'), ('Nome (sem fechamento', ''))
+
+    def test_keyboard_activation_targets_one_shortcut(self):
+        root = tk.Tk()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        window._select_page('Atalhos')
+        window.set_hotkeys([('id:a', 'Disponivel', 'ctrl+1'), ('id:b', 'Indisponivel', 'ctrl+2')])
+        button = window.shortcut_rows['id:b'][2]
+        root.update()
+        button.focus_force()
+        root.update()
+        button.event_generate('<KeyPress-Return>')
+        root.update()
+        self.assertEqual(window.selected_shortcut(), 'id:b')
+        actions.editar_atalho.assert_called_once_with()
+
+    def test_keyboard_navigation_and_disabled_button(self):
+        root = tk.Tk()
+        self.addCleanup(root.destroy)
+        actions = SimpleNamespace(**{name: Mock() for name in (
+            'device_labels', 'trocar_dispositivo', 'atualizar_lista', 'gravar_tecla',
+            'registrar_atalho', 'editar_atalho', 'remover_atalho')})
+        actions.device_labels.return_value = {}
+        window = main_window.MainWindow(root, actions)
+        root.update()
+        nav = window.navigation._buttons_dict['Atalhos']
+        nav.focus_force()
+        root.update()
+        nav.event_generate('<KeyPress-space>')
+        root.update()
+        self.assertEqual(window.navigation.get(), 'Atalhos')
+        window.set_recording_state(True, 'Gravando...')
+        window.btn_registrar.focus_force()
+        root.update()
+        window.btn_registrar.event_generate('<KeyPress-Return>')
+        root.update()
+        actions.registrar_atalho.assert_not_called()

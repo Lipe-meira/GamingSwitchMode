@@ -82,7 +82,7 @@ def main():
                 ui.window.root.after(500, lambda: activate('ctrl+alt+shift+f24'))
                 phase = 1
             elif phase == 1 and len(switched) == 1:
-                ui.window.lista_atalhos.selection_set('id:' + playback)
+                ui.window.shortcut_selected = 'id:' + playback
                 ui.editar_atalho()
                 ui.window.tecla_var.set('ctrl+alt+shift+f23')
                 ui.registrar_atalho()
@@ -93,14 +93,14 @@ def main():
                 phase = 2
             elif phase == 2 and len(switched) == 2:
                 assert switched == [playback, playback]
-                ui.window.lista_atalhos.selection_set('id:' + playback)
+                ui.window.shortcut_selected = 'id:' + playback
                 ui.remover_atalho()
                 assert not ui.manager.config['bindings']
                 assert not ui.manager.handles
                 ui.manager.config['unresolved'] = [{'legacy_index': '99', 'hotkey': 'ctrl+alt+shift+f24'}]
                 ui.store.save(ui.manager.config)
                 ui.refresh_views()
-                ui.window.lista_atalhos.selection_set('legacy:99')
+                ui.window.shortcut_selected = 'legacy:99'
                 ui.editar_atalho()
                 assert ui.window.tecla_var.get() == 'ctrl+alt+shift+f24'
                 ui.window.dispositivo_var.set(next(k for k, v in ui.device_labels().items() if v == playback))

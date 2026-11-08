@@ -11,6 +11,7 @@ class UITests(unittest.TestCase):
         self.ui.events = queue.Queue()
         self.ui.audio_jobs = queue.Queue()
         self.ui.dispositivos = {}
+        self.ui.window = Mock()
         self.ui.manager = Mock()
         self.ui.manager.config = {'bindings': [{'device_id': 'a', 'name': 'Headset'}]}
 
