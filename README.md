@@ -51,7 +51,7 @@ cd GamingSwitchMode
 Instale as dependências Python:
 
 ```bash
-pip install keyboard pystray pillow
+python -m pip install -r requirements.txt
 ```
 
 Se o módulo incluído não estiver disponível, instale a alternativa no usuário:
@@ -158,7 +158,9 @@ IDs não garantem continuidade após reinstalação de drivers/Windows.
 
 ## 🔽 Bandeja do sistema
 
-Ao fechar a janela, o GamingSwitchMode não encerra imediatamente.
+Ao fechar a janela, o GamingSwitchMode não encerra imediatamente. Se o ícone da
+bandeja ainda não estiver visível ou falhar, uma confirmação permite encerrar o
+aplicativo ou manter a janela aberta para aguardar.
 
 Ele continua executando na bandeja do sistema para que os atalhos permaneçam funcionando.
 
@@ -182,17 +184,30 @@ Pelo ícone da bandeja é possível:
 
 ```text
 GamingSwitchMode/
-│
-├── audio_switcher.py    # Interface, atalhos e tray icon
-├── audio.py             # Controle dos dispositivos de áudio
+├── audio_switcher.py    # Entrada mínima; chama ApplicationController
+├── application.py       # Coordenação, estado, eventos e ciclo de vida
+├── main_window.py       # Construção e apresentação Tkinter
+├── audio_service.py     # Consulta/ativação e eventos de áudio
+├── audio.py             # PowerShell e AudioDeviceCmdlets
+├── hotkeys.py           # Registro transacional e restauração de atalhos
 ├── configuration.py     # Schema, migração, backup e gravação atômica
-├── hotkeys.py           # Registro transacional dos atalhos
-├── tests/               # Testes unitários e smoke test Windows opcional
-├── shortcuts.py         # Utilitários relacionados a atalhos
-├── AudioSwitcher.spec   # Configuração do PyInstaller
-├── build/
-└── dist/
+├── system_tray.py       # Ícone, callbacks e disponibilidade da bandeja
+├── windows_instance.py  # Aquisição e liberação do mutex Windows
+├── modules/             # AudioDeviceCmdlets incluído
+├── tests/               # Testes automatizados e smoke test Windows opcional
+├── docs/                # Relatórios das tarefas
+├── shortcuts.py         # Exemplo independente de captura da tecla Q
+├── AudioSwitcher.spec   # Entrada e recursos do PyInstaller
+└── requirements.txt
 ```
+
+`ApplicationController` compõe os serviços, restaura atalhos, cria a janela e
+inicia workers e bandeja. A interface envia ações por callbacks e recebe dados
+para apresentação; não constrói comandos PowerShell nem grava configurações.
+Os callbacks de teclado e bandeja publicam eventos em uma fila processada no
+Tk. Um worker serializa operações de áudio. Ao sair, o controlador fecha os
+atalhos, sinaliza o worker, para a bandeja, destrói a janela e libera o mutex.
+A operação de áudio em andamento não é aguardada; consulte o relatório da TASK 02.
 
 ## 🏗️ Gerando o executável
 
@@ -218,11 +233,12 @@ dist/
 
 ```powershell
 python -m unittest discover -s tests -v
-python -m py_compile audio.py audio_switcher.py configuration.py hotkeys.py
-python -c "import audio, audio_switcher, configuration, hotkeys"
+python -m py_compile audio_switcher.py application.py main_window.py audio_service.py audio.py configuration.py hotkeys.py system_tray.py windows_instance.py
+python -c "import audio_switcher, application, main_window, audio_service, audio, configuration, hotkeys, system_tray, windows_instance"
 ```
 
-Os testes unitários usam fakes/mocks para áudio e teclado, sem hardware real.
+Os testes usam fakes/mocks para áudio e teclado, sem dispositivos físicos; os testes
+de `MainWindow` criam uma janela Tk e exigem uma sessão gráfica disponível.
 O teste integrado opcional exige uma sessão de desktop Windows:
 
 ```powershell
@@ -233,7 +249,8 @@ Ele usa configuração temporária, Tkinter/bandeja e registro real de hooks; si
 o callback na fila, aplica o ID da saída atual e restaura os padrões anteriores.
 `python tests/windows_smoke.py --send-input` tenta acionar os hooks com teclas
 sintetizadas. Isso pode falhar em sessões remotas/isoladas; valide teclas físicas
-manualmente. Veja [o relatório e roteiro de validação](docs/task-01-report.md).
+manualmente. Veja o [relatório da TASK 02](docs/task-02-report.md) e o
+[roteiro da TASK 01](docs/task-01-report.md).
 
 ## 🎯 Objetivo
 
